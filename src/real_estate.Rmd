@@ -12,6 +12,6 @@ knitr::opts_chunk$set(echo = TRUE)
 library(googlesheets4)
 
 MSA_demo_data <- read_sheet("https://docs.google.com/spreadsheets/d/12do9sRCAcrIe0K-VcJWXNmmTm_jg5rKjZ0NeJPOm9Jw/edit#gid=0")
-city_realEstate_ata <- read_sheet("https://docs.google.com/spreadsheets/d/12do9sRCAcrIe0K-VcJWXNmmTm_jg5rKjZ0NeJPOm9Jw/edit#gid=359643482")
+city_realEstate_data <- read_sheet("https://docs.google.com/spreadsheets/d/10n55Gt0rySN96OGTQ2_8PzeTcX66n26sOlZBiuiAeBU/edit#gid=808954990")
 ```
 
