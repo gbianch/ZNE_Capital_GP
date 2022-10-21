@@ -1,0 +1,422 @@
+---
+title: "Metropolitan Statistical Area Evaluation"
+author: "Grace Bianchi"
+date: "5/12/2022"
+output:   html_document
+---
+
+This report provides an explanatory overview of demographic and real estate data for metropolitan statistical areas. The code wrangles and analyzes data collected from government agencies to create metrics to explore the relationships between criteria and compare across MSAs. Specifically, this data analysis includes population growth, household income, employment rates, house prices, and property taxes. Preliminary analysis of population change and size narrowed down potential areas which experienced population growth rate greater than 0.5% and have populations greater than 300,000 people. In addition, 28 MSAs were removed from analysis, as requested by the client, due to hyper-competitive real estate markets. In brief, there are 44 metropolitan statistical areas with potential for ZNE Capital aqcuire real estate.
+
+## Preliminary analysis {.tabset}
+
+```{r setup, include=FALSE, warning = FALSE, message = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(here)
+library(janitor) #clean_names
+library(DT) # create data table
+library(scales) 
+library(lubridate)
+library(gridExtra) 
+library(ggrepel)
+library(kableExtra)
+
+library(tigris) # Census shape files
+library(sf)
+options(tigris_class = "sf")
+options(tigris_use_cache = TRUE)
+```
+
+### Population Growth
+All states were considered with the exception of CA, HI, and AK. Initial analysis of Metropolitan Statistical Areas (MSAs) relied on Census data of annual population estimates, in which the population had to be greater than 300,000 individuals for the purpose of attracting investors. Population change from 2020 to 2021 was calculated by $$\frac{2021 estimate- 2020 estimate}{2021 estimate} * 100$$
+MSAs with a population growth > 0.5%, were selected to gather further data on. The 0.5% growth was determined.
+
+Dataset: Annual Resident Population Estimates and Estimated Components of Resident Population Change for Metropolitan and Micropolitan Statistical Areas and Their Geographic Components: April 1, 2020 to July 1, 2021 (CBSA-EST2021-ALLDATA)
+
+Source: [U.S. Census Bureau, Population Division](https://www.census.gov/data/tables/time-series/demo/popest/2020s-total-metro-and-micro-statistical-areas.html)
+
+```{r population growth data wrangling}
+# read in the data MSA population data from Census
+msa_pop_2021_data <- read_csv(here("data","raw", "msa_2021_alldata.csv")) %>% 
+  clean_names() %>% # data wrangling to make column headers in lower_snake_case
+  filter(lsad == "Metropolitan Statistical Area") %>% # select MSA cities
+  select("cbsa", "name", "popestimate2020", "popestimate2021", "residual2020", "residual2021") %>% # select data 
+  filter(popestimate2021 >= 300000) %>% 
+  separate(col = "name",
+           into = c("MSA", "state"), # split city and state data
+           sep = ", ") %>% 
+  mutate(pop_percent_change = (popestimate2021-popestimate2020)/popestimate2021 * 100)  # add population % change column 
+
+# create __ 
+potential_MSAs <- msa_pop_2021_data %>% 
+  filter(pop_percent_change > 0.5 ) %>% 
+  mutate(pop_percent_change20_21 = round(pop_percent_change, digits = 3)) %>% 
+  filter (!state %in% c("CA", "HI", "AK")) %>% 
+  #separate(col = "state", into = c("state1", "state2", "state3"),    sep = "-") %>% 
+  filter(!cbsa %in% c("10580", "10900", "12420", "12940", "14260", "15980", "18580", "19100", "19660", "19740", "23540", "25420", "26420", "27260", "29820", "34940", "36260", "36740", "38060", "39100", "39300", "39340", "41620", "45220", "45300", "46060", "46140", "39900")) %>%  # remove MSAs as instructed by Owen 
+  select(cbsa, MSA, state, pop_percent_change20_21) 
+
+```
+
+
+```{r population growth msa map, eval=FALSE}
+# adding column for levels of population growth
+pop_growth_pos <- potential_MSAs %>% 
+  mutate(pop_pos = case_when(
+    pop_percent_change20_21 > 2 ~ "high",
+    pop_percent_change20_21 > 1 ~ "medium",
+    pop_percent_change20_21 > 0 ~ "low"
+  ))
+
+# MSA shapefiles from Census
+cbsa <- core_based_statistical_areas(cb = TRUE) %>% 
+  mutate(CBSAFP = as.numeric(CBSAFP)) %>% 
+  inner_join(pop_growth_pos, by = c("CBSAFP" = "cbsa"))
+
+# state and U.S. map coordinates
+states <- map_data("state")
+usa<- map_data("usa") 
+
+# map of U.S. with MSAs highlighted
+ggplot() +
+  geom_polygon(data = states,
+               aes(x = long, y = lat,
+                   group = group)) + 
+  geom_sf (data = cbsa, aes(fill = pop_pos)) +
+  labs(title = "MSAs with the highest population growth in 2020")
+```
+
+Figure 1. Population growth in Metropolitan Statistical Areas (n=44) in 2020. Highlighted areas have a population > 300,000 individuals and a population growth rate greater than 0.5%. The colors of the MSAs represent incremental growth rates, in which low(green) is 0.5-1% increase, medium(blue) is 1-2% increase, and high(pink) is 2-3.5% increase. Data: U.S. Census Bureau, Population Division.
+
+```{r fig.height = 7, fig.align='center', eval = FALSE}
+ggplot(data = positive_MSA_pop_change, aes(x = pop_percent_change20_21, y = reorder(MSA, pop_percent_change20_21))) + 
+  geom_point(size = 3, color = "darkgreen") + 
+  theme_minimal(base_size = 12.5) 
+
+```
+
+### Household Income
+Household Median Income data was also obtained from Census data at the MSA level and amended to existing MSAs with a positive population increase. Median is a better indicator of the population than the mean income values due to the positive skew from the highest incomes.
+
+Dataset: Median Household Income (USD) INCOME IN THE PAST 12 MONTHS (IN 2020 INFLATION-ADJUSTED DOLLARS)
+
+Source: [U.S. Census Bureau](https://data.census.gov/cedsci/table?q=median%20household%20income&t=Income%20and%20Earnings&g=0100000US%243100000&tid=ACSST5Y2020.S1901)
+
+```{r household income data wrangling}
+MSA_income_data <- read_csv(here("data","raw", "MSA_income", "2021_data", "2021_income_data.csv")) %>% 
+  row_to_names(1) %>% 
+  clean_names() %>% 
+  mutate(median_income = as.numeric(estimate_households_median_income_dollars)) %>% 
+  mutate(income_moe_USD = as.numeric(margin_of_error_households_median_income_dollars)) %>% 
+  separate(col = "geography",
+           into = c("id", 'cbsa'),
+           sep = 9) %>% 
+  mutate(cbsa = as.numeric(cbsa)) # change column class from chr to dbl
+  
+# join population growth data set to household median income
+MSA_house_income <- MSA_income_data %>% # rename row names
+  inner_join(potential_MSAs) %>% 
+  select(cbsa, MSA, state,median_income, income_moe_USD) 
+#select(cbsa, MSA, state, pop_percent_change20_21, median_income, income_moe_USD) 
+
+```
+
+```{r, household income visual, fig.height = 7, fig.align='center'}
+ggplot(MSA_house_income, aes(x = median_income, y = reorder(MSA, median_income))) +
+  geom_errorbarh(aes(xmin = median_income - income_moe_USD, xmax = median_income + income_moe_USD)) + 
+  geom_point(size = 3, color = "darkgreen") + 
+  theme_minimal(base_size = 12.5) + 
+  labs(title = "Median household income in 2021", 
+       subtitle = "", 
+       x = "estimate (in USD)", 
+       y = "") + 
+  scale_x_continuous(labels = label_dollar())
+  
+```
+
+Figure 2. Median Household income of Metropolitan Statistical Areas in 2021. The green points indicate the median income value for each MSA with the margin of error presented by the bars on either side of each point. Data: U.S. Census Bureau.
+
+### Employment Rates
+MSA monthly unemployment rates (seasonally-adjusted) were provided by The Bureau of Labor statistics in the civil labor force data at the MSA level. The average annual unemployment rates were calculated using the monthly rates from 2012 to 2020. Employment rates were calculated by dividing the number of employment / civilian labor force. The employment data for the month of January in years 2018-2021 was selected to calculate the change in employment rates over time. Year-over-Year employment growth was calculated by dividing the employment rate of the year by the previous year and subtracting one; for example, 2018 employment YoY growth = (2019 employment rate / 2018 employment rate) - 1.
+
+Annual Average Employment Rates & Year-over-Year change civil labor force data from [The Bureau of Labor Statistics](https://www.bls.gov/lau/metrossa.htm)
+
+Monthly unemployment rates (seasonally-adjusted) from [The Bureau of Labor Statistics](https://www.bls.gov/web/metro/metro_area_3mma.pdf)
+
+```{r, employment data wrangling}
+unemployment_data <- read_csv(here("data", "raw", "civil_labor_force_BLS.csv")) %>% #rename col headers
+  clean_names() %>% 
+  rename(cbsa = x3) %>% 
+  rename(area = x4) %>% 
+  rename(year = x5) %>% 
+  rename(month = x6) %>% 
+  rename(civilian_labor_force = x7) %>% 
+  rename(employment = x8) %>% 
+  rename(unemployment = x9) %>% 
+  rename(unemployment_rate = x10) %>% 
+  mutate(employment_rate = (employment/civilian_labor_force)*100) # calculate
+
+# data wrangling, only selecting data for potential MSAs
+MSA_employment <- unemployment_data %>% 
+  filter(year >= 2015) %>% 
+  full_join(MSA_house_income) %>% 
+  drop_na() %>% 
+  select(cbsa, MSA, year, month, employment_rate, median_income, income_moe_USD)
+  
+# calculate YoY growth 
+MSA_employment_yoy <- MSA_employment %>% 
+  filter(year >= 2016) %>% 
+  filter(month == "01") %>% 
+  arrange(MSA, month) %>% 
+  group_by(MSA) %>% 
+  mutate(YoY = (employment_rate-lag(employment_rate))/lag(employment_rate)*100) %>% 
+  mutate(employment_YoY = round(YoY, digits = 3)) %>% 
+  mutate(emp_pos = employment_YoY >= 0) %>% # function to create column for yoy value, true = positive YoY
+  select(!c(YoY, month)) %>% 
+  drop_na()
+
+```
+
+```{r eval = FALSE}
+# average employment from 2000 to 2022
+employment_summary_since2000 <- MSA_employment %>% 
+  group_by(MSA) %>% 
+  filter(year >= 2000) %>% 
+  summarize(
+    avg_employment = mean(employment_rate),
+    sd_employment = sd(employment_rate)
+  )
+
+```
+
+```{r employment visuals, fig.align = "center", fig.show="hold", fig.height= 7, fig.width=10}
+# visual of MSA employment rates, shows major drop during covid
+ggplot(MSA_employment_yoy, aes(x = year, y = employment_rate, color = MSA)) +
+  geom_line() +
+  xlim(2016, 2022) +
+  theme(legend.position = "none") +
+
+  labs(x = "Year",
+       y = "Employment Rate",
+      title = "Employment Rate Trend since 2016")
+
+# year over year change in employment rate, split up by year
+ggplot(MSA_employment_yoy, aes(x = employment_YoY, y = reorder(MSA, employment_YoY), fill = emp_pos)) +
+  geom_col(position = "identity", color = "black", size = 0.25) +
+  scale_fill_manual(values = c("red", "darkolivegreen3"), guide = FALSE) +
+  facet_grid(~year) +
+  labs(x = "Year-over_year change in employment rate",
+       y = "")
+
+```
+
+
+
+
+```{r payroll data}
+# payroll data has not been added to final table
+payroll_data <- read_csv(here("data","raw", "employee_payroll_MSA21_22.csv")) %>% 
+  row_to_names(4) %>% 
+  clean_names() %>% 
+  rename(MSA = na) %>% 
+  rename(payroll_change_may21 = may_2021) %>% 
+  rename(payroll_change_mar22 = mar_2022) %>% 
+  rename(payroll_change_apr22 = apr_2022) %>% 
+  rename(payroll_change_may22 = may_2022_p)
+
+MSA_payroll <- payroll_data %>% 
+  full_join(potential_MSAs) %>% 
+  drop_na() %>% 
+  pivot_longer(cols = 2:5,
+               names_prefix = "payroll_change_",
+               names_to = "year",
+               values_to = "payroll_change") %>% 
+  mutate(payroll_change = as.numeric(payroll_change)) %>% 
+  group_by(MSA, year)  %>% 
+  mutate(payroll_pos = payroll_change >= 0)
+   
+```
+```{r payroll visual, fig.height = 7}
+ggplot(MSA_payroll, aes(x = payroll_change, y = reorder(MSA, payroll_change), fill = payroll_pos)) +
+  geom_col(position = "identity", color = "black", size = 0.25) +
+  scale_fill_manual(values = c("red", "darkolivegreen3"), guide = FALSE) +
+  labs(x = "percent change",
+       y = "",
+       title = "Quarterly change in employee payroll from 2021 to 2022") +
+  facet_grid(~year)
+
+```
+
+
+<https://www.bls.gov/web/metro.supp.toc.htm> <https://www.bls.gov/web/metro/metro_oty_change.htm> - significant change
+
+### House Prices
+
+Median housing prices by MSA were obtained from the Association of Realtors for years 2019, 2020, and 2021. The percent difference in 2021 Q1 and 2022 Q1 was used to show the change in price in 2021. **Next quarterly release will be 11/10**
+
+Source: [The National Association of Realtors](https://www.nar.realtor/research-and-statistics/housing-statistics/metropolitan-median-area-prices-and-affordability)
+
+```{r house price data}
+metro_house_cost_data <- read_csv(here("data","raw", "metro_home_costs", "metro_home_prices.csv")) %>% 
+  row_to_names(3) %>% 
+  clean_names() %>% 
+  separate(col = "metropolitan_area",
+           into = c("cbsa", 'metro_area'),
+           sep = 5) %>% 
+  mutate(cbsa = as.numeric(cbsa)) %>% 
+  mutate(x2020 = as.numeric(x2020))
+
+metro_house_prices <- MSA_house_income %>%
+  left_join(metro_house_cost_data)  %>% 
+  rename(house_price_2020 = x2020) %>% 
+  rename(house_price_2021 = x2021_r) %>% 
+  rename(houseprice_change21_22 = q1_q1) %>% 
+  select(!c(metro_area, x2019, na)) %>% 
+  # select(cbsa, houseprice_change21_22) %>% 
+  separate(col = "houseprice_change21_22",
+           into = "houseprice_change21_22",
+           sep = "%") %>% 
+  mutate(houseprice_change21_22 = as.numeric(houseprice_change21_22))
+```
+
+```{r house price exploratory, eval = FALSE}
+ggplot(data = metro_house_cost_data, aes(x = log(x2020))) +
+   geom_histogram(bins = 100)
+
+ggplot(data = metro_house_cost_data, aes(sample = log(x2020))) +
+  geom_qq() 
+
+```
+
+The following MSAs were not included in the housing dataset:
+
+- Augusta-Richmond County
+- Clarksville, TN-KY
+- Greeley, CO
+- Killeen, TX
+- Lubbock, TX
+- McAllen-Edinburg-Mission, TX
+- Salisbury, MD
+- Savannah, GA
+
+```{r, house price visual, fig.height = 7, fig.align='center'}
+ggplot(metro_house_prices, aes(x = houseprice_change21_22, y = reorder(MSA, houseprice_change21_22))) +
+  geom_col(fill = "dodgerblue4") +
+  geom_text(aes(label = houseprice_change21_22),
+            size = 4,
+            hujust = 1, nudge_x = -1,
+            color = "white") +
+  theme_minimal()  +
+  labs(x = "% change",
+       y = "",
+       title = "Change in House Prices in 2021")
+
+```
+
+### Property Taxes
+It was difficult to find property tax information by city that was consistent across cities. Median real estate taxes in dollars are provided by the U.S. Census and data is collected at the MSA level. A metric of property tax and median home prices can be used to normalized.
+
+Dataset: B25103  MORTGAGE STATUS BY MEDIAN REAL ESTATE TAXES PAID (USD) in 2019
+
+Source:[U.S. Census Bureau](https://data.census.gov/cedsci/table?q=property%20tax&g=0100000US%2431000M1&d=ACS%201-Year%20Estimates%20Detailed%20Tables&tid=ACSDT1Y2019.B25103&tp=true)
+
+```{r property taxes data wrangling}
+property_tax_data <- read_csv(here("data","raw", "wide_property_tax_data.csv")) 
+
+# create new data frame with tax estimate values
+median_tax_df <- property_tax_data %>% 
+  select(ends_with("estimate")) %>% 
+  slice(2) %>% 
+  stack() %>% # flip data table to be tidy
+  rename(MSA = ind) %>% 
+  mutate(median_tax_USD = as.numeric(values)) %>% 
+  separate(col = MSA,
+           into = c("MSA", "state"),
+           sep = ", ") %>% 
+  separate(col = state,
+           into = c("state"),
+           sep = " ") %>% 
+  select(!values)
+  
+# make data frame with margin of error values
+moe_tax_df <- property_tax_data %>% 
+  select(ends_with("error")) %>% 
+  slice(2) %>% 
+  stack() %>% # flip data table to be tidy
+  rename(MSA = ind) %>% 
+  separate(col = values,
+           into = c("value", "tax_moe_USD"),
+           sep = 1) %>% 
+  mutate(tax_moe_USD = as.numeric(tax_moe_USD)) %>% 
+  separate(col = MSA,
+           into = c("MSA", "state"),
+           sep = ", ") %>% 
+  separate(col = state,
+           into = c("state", "area"),
+           sep = " ") %>% 
+  select(!c(value, area))
+
+MSA_property_tax <- metro_house_prices %>% 
+  full_join(median_tax_df) %>% 
+  left_join(moe_tax_df) %>% 
+  drop_na(cbsa) # drop all MSA rows if NA in cbsa column
+  
+```
+
+```{r property tax visual, fig.height = 7, fig.align='center'}
+ggplot(MSA_property_tax, aes(x = median_tax_USD, y = reorder(MSA, median_tax_USD))) +
+  geom_errorbarh(aes(xmin = median_tax_USD - tax_moe_USD, xmax = median_tax_USD + tax_moe_USD)) + 
+  geom_point(size = 3, color = "darkgreen") + 
+  theme_minimal(base_size = 12.5) + 
+  labs(title = "Median property tax in 2019", 
+       subtitle = "", 
+       x = "Median Property Tax estimate (in USD)", 
+       y = "") + 
+  scale_x_continuous(labels = label_dollar())
+```
+
+
+
+```{r join population, unemployment, income, and house price data}
+# join employment data with income, house prices, tax, and population data
+MSApop_income_housecost_tax_emp <- MSA_employment_yoy %>%
+  filter(year == "2022") %>% 
+  mutate(employment_rate = round(employment_rate, digits = 3)) %>% 
+  select(cbsa, year, employment_rate, employment_YoY) %>% 
+  right_join(MSA_property_tax) %>% 
+  select(!year)
+  
+```
+
+
+### MSA data table
+
+```{r data table}
+# table seperated by MSAs
+datatable(MSApop_income_housecost_tax_emp, extensions = 'Buttons', options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+  )
+)
+```
+
+### City Data Table
+MSAs were split up by cities to collect utility, rent, and landlord data.
+
+```{r MSAs seperate into cities}
+#  split up MSAs into cities to collect utility, rent, and landlord data.
+msa_seperated <- MSApop_income_housecost_tax_emp %>% 
+  separate_rows(MSA, sep = "-") %>% 
+  rename(city = MSA)# %>% # seperate MSA cities into their own columns
+ # full_join(payroll_data, by = c("MSA" = "area")) %>% 
+ # drop_na(pop_percent_change20_21)
+
+# table seperated by city
+datatable(msa_seperated, extensions = 'Buttons', options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+  )
+)
+
+```
