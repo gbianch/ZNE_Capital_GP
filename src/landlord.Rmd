@@ -16,13 +16,6 @@ library(kableExtra)
 MSA_landlord_data <- read_sheet("https://docs.google.com/spreadsheets/d/1zCePYRyJ5lb1Z5jvCujg17EtwqpxJN1E1_HwJL66uLM/edit#gid=122953884") 
 ```
 
-
-```{r}
-# #only take Y/N columns
-# MSA_landlord_data_binary <- MSA_landlord_data %>% 
-#   select(cbsa, MSA, rent_control, eviction_notice_days, security_depopsit_limit_YN, notice_for_entry_days_YN)
-```
-
 ```{r}
 #mutate Y/N columns into 0/1
 
@@ -85,4 +78,6 @@ for (i in 1:size[1]) {
   MSA_landlord_data$landlord_score[i] = weighted.mean(MSA_x_data, landlord_weights)
 }
 ```
+
+
 
