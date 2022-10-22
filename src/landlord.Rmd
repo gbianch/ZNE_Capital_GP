@@ -69,10 +69,20 @@ MSA_landlord_data <- MSA_landlord_data %>%
 #input landlord weights for each indicator in the following order: rent control, security deposit limit, notice for entry, eviction notice days
 #Get weights from Owen
 #Weights must sum to 1
-landlord_weights <- c(0.5, 0.1, 0.1, 0.3)
+landlord_weights <- c(0.25, 0.25, 0.25, 0.25)
+
+#make landlord_score column
+MSA_landlord_data <- MSA_landlord_data %>% 
+  mutate(
+    landlord_score = MSA #this is just a place holder
+  )
 size <- dim(MSA_landlord_data)
-for (x in 1:size[1]) {
-  print(x)
+for (i in 1:size[1]) {
+  MSA_x_data <- c(MSA_landlord_data$rent_control_binary[i], 
+                  MSA_landlord_data$security_depopsit_limit_binary[i],
+                  MSA_landlord_data$notice_for_entry_days_binary[i],
+                  MSA_landlord_data$eviction_notice_days_normalized_inverted[i])
+  MSA_landlord_data$landlord_score[i] = weighted.mean(MSA_x_data, landlord_weights)
 }
-x```
+```
 
