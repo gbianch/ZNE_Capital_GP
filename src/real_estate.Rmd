@@ -12,6 +12,55 @@ knitr::opts_chunk$set(echo = TRUE)
 library(googlesheets4)
 
 MSA_demo_data <- read_sheet("https://docs.google.com/spreadsheets/d/12do9sRCAcrIe0K-VcJWXNmmTm_jg5rKjZ0NeJPOm9Jw/edit#gid=0")
+
 city_realEstate_data <- read_sheet("https://docs.google.com/spreadsheets/d/10n55Gt0rySN96OGTQ2_8PzeTcX66n26sOlZBiuiAeBU/edit#gid=808954990")
+```
+
+```{r}
+# aggregate yardi data into MSAs by cbsa
+MSA_realEstate_data <- city_realEstate_data %>% 
+  
+```
+
+```{r}
+# calculate rent to income ratio
+
+
+
+
+
+# YoY rent change
+```
+
+```{r}
+# calculate income to home price
+```
+
+```{r}
+
+```
+
+```{r}
+# normalize everything into new data table
+
+normalized <- 
+
+```
+
+```{r}
+# invert normalized rent to income ratio so lower values (more favorable) have higher scores
+
+= 1- normalized score
+```
+
+```{r}
+# weights from owen
+
+# place holder column
+MSA_real_estate_score <- 
+  mutate
+
+weights <- c()
+
 ```
 
