@@ -17,28 +17,30 @@ MSA_landlord_data <- read_sheet("https://docs.google.com/spreadsheets/d/1zCePYRy
 ```
 
 ```{r}
-#mutate Y/N columns into 0/1
-
-#rent_control
-MSA_landlord_data <- MSA_landlord_data %>% 
-  mutate(
-    rent_control_binary = case_when(
-      rent_control == "N" ~ 1, 
-      rent_control == "Y" ~ 0))
+# #rent_control
+# MSA_landlord_data <- MSA_landlord_data %>% 
+#   mutate(
+#     rent_control_binary = case_when(
+#       rent_control == "N" ~ 1, 
+#       rent_control == "Y" ~ 0))
 
 #security_deposit_limit
 MSA_landlord_data <- MSA_landlord_data %>% 
   mutate(
-    security_depopsit_limit_binary = case_when(
-      security_depopsit_limit_YN == "N" ~ 1, 
-      security_depopsit_limit_YN == "Y" ~ 0))
+    security_depopsit_limit_num = case_when(
+      security_deposit_limit == "N" ~ 1.0, 
+      security_deposit_limit == "1_month_rent" ~ 0.5,
+      security_deposit_limit == "2_months_rent" ~ 0.0))
 
 #notice_of_entry_days
 MSA_landlord_data <- MSA_landlord_data %>% 
   mutate(
-    notice_for_entry_days_binary = case_when(
-      notice_for_entry_days_YN == "N" ~ 1, 
-      notice_for_entry_days_YN == "Y" ~ 0))
+    notice_for_entry_days_num = case_when(
+      notice_for_entry_days == "N" ~ 1.0, 
+      notice_for_entry_days == "0" ~ 1.0,
+      notice_for_entry_days == "0.5" ~ 0.75,
+      notice_for_entry_days == "1" ~ 0.5,
+      notice_for_entry_days == "2" ~ 0.0,))
 ```
 
 ```{r}
