@@ -18,6 +18,13 @@ city_realEstate_data <- read_sheet("https://docs.google.com/spreadsheets/d/10n55
 ```
 
 ```{r}
+# select columns in demographic data
+MSA_demo_data <- MSA_demo_data %>% 
+  clean_names() %>% 
+  select(cbsa, msa, state, employment_yo_y21_22, pop_percent_change20_21, median_income_usd_2021, house_price_2021, median_tax_usd)
+```
+
+```{r}
 # aggregate yardi data into MSAs by cbsa
 MSA_realEstate_data <- city_realEstate_data %>% 
   clean_names() %>% 
@@ -31,7 +38,7 @@ MSA_realEstate_data <- city_realEstate_data %>%
 
 ```{r}
 # combine real estate and demographic data by cbsa
-MSA_demo_data <- MSA_demo_data %>% 
+MSA_realEstate_data <- MSA_demo_data %>% 
   left_join(MSA_realEstate_data)
 ```
 
@@ -39,7 +46,6 @@ MSA_demo_data <- MSA_demo_data %>%
 # calculate rent to income ratio
 compliedMSA_realEstate <- MSA_demo_data %>% 
   mutate(income_to_rent = median_income_USD_2021/avg_rent_2021)
-
 
 
 # YoY rent change
