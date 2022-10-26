@@ -29,8 +29,8 @@ MSA_landlord_data <- MSA_landlord_data %>%
   mutate(
     security_depopsit_limit_num = case_when(
       security_deposit_limit == "N" ~ 1.0, 
-      security_deposit_limit == "1_month_rent" ~ 0.5,
-      security_deposit_limit == "2_months_rent" ~ 0.0))
+      security_deposit_limit == "1_month_rent" ~ 0.0,
+      security_deposit_limit == "2_months_rent" ~ 0.5))
 
 #notice_of_entry_days
 MSA_landlord_data <- MSA_landlord_data %>% 
