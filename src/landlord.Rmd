@@ -59,6 +59,7 @@ MSA_landlord_data <- MSA_landlord_data %>%
 ```
 
 ```{r}
+#PICK UP HERE!
 #calculate landlord category score
 
 #input landlord weights for each indicator in the following order: rent control, security deposit limit, notice for entry, eviction notice days
