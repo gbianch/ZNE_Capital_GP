@@ -21,7 +21,9 @@ city_realEstate_data <- read_sheet("https://docs.google.com/spreadsheets/d/10n55
 # select columns in demographic data
 MSA_demo_data <- MSA_demo_data %>% 
   clean_names() %>% 
-  select(cbsa, msa, state, employment_yo_y21_22, pop_percent_change20_21, median_income_usd_2021, house_price_2021, median_tax_usd)
+    # calculate income to home price
+  mutate(income_to_homeprice = median_income_usd_2021/house_price_2021) %>% 
+  select(cbsa, msa, state, employment_yo_y21_22, pop_percent_change20_21, median_income_usd_2021, income_to_homeprice)
 ```
 
 ```{r}
@@ -29,9 +31,12 @@ MSA_demo_data <- MSA_demo_data %>%
 MSA_realEstate_data <- city_realEstate_data %>% 
   clean_names() %>% 
   group_by(cbsa) %>% 
+  # calculate average values for MSAs with more than one city
   summarize(avg_rent_2021 = mean(average_rent_2021, na.rm = TRUE),
             avg_rent_2022 = mean(x2022_rent, na.rm = TRUE),
-            avg_occupancy_21 = mean(percent_occupancy_2021, na.rm = TRUE))
+            avg_occupancy_21 = mean(percent_occupancy_2021, na.rm = TRUE)) %>% 
+  # calculate change in rent
+  mutate(rent_change21_22 = (avg_rent_2022- avg_rent_2021)/avg_rent_2021)
   
   
 ```
@@ -39,30 +44,32 @@ MSA_realEstate_data <- city_realEstate_data %>%
 ```{r}
 # combine real estate and demographic data by cbsa
 MSA_realEstate_data <- MSA_demo_data %>% 
-  left_join(MSA_realEstate_data)
+  left_join(MSA_realEstate_data) %>% 
+  # calculate rent to income ratio
+  mutate(rent_to_income = avg_rent_2021/median_income_usd_2021) 
+
 ```
 
 ```{r}
-# calculate rent to income ratio
-compliedMSA_realEstate <- MSA_demo_data %>% 
-  mutate(income_to_rent = median_income_USD_2021/avg_rent_2021)
-
-
-# YoY rent change
 ```
 
 ```{r}
 # calculate income to home price
 ```
 
-```{r}
-
-```
 
 ```{r}
-# normalize everything into new data table
-
-normalized <- 
+# normalize columns into new data table
+n_MSA_realEstate_data <- MSA_realEstate_data %>% 
+  # normalize population data
+  mutate(n_pop_change = (pop_percent_change20_21 - min(pop_percent_change20_21))/(max(pop_percent_change20_21)-min(pop_percent_change20_21))) %>% 
+  # normalize employment growth
+  mutate(n_employ_change = (employment_yo_y21_22 - min(employment_yo_y21_22)) / (max(employment_yo_y21_22) - min(employment_yo_y21_22))) %>% 
+  # normalize rent to income
+  mutate(n_rent_to_income = (rent_to_income- min(rent_to_income)) / (max(rent_to_income) - min(rent_to_income))) %>% 
+  # normalize income to home price
+  mutate(n_income_to_homeprice = (income_to_homeprice - min(income_to_homeprice)) / (max(income_to_homeprice) - min(income_to_homeprice)))
+  
 
 ```
 
