@@ -189,7 +189,7 @@ portland_employment_data <- read_csv(here("data", "raw", "portland_me_employment
 employment_data_jan_2021 <- 100-4.9
 employment_data_jan_2022 <- 100- 3.6
 
-yoy <- (employment_data_jan_2022 - employment_data_jan_2021)/ employment_data_jan_2022 *100
+yoy <- (employment_data_jan_2022 - employment_data_jan_2021)/ employment_data_jan_2021 *100
  
   
 ```
