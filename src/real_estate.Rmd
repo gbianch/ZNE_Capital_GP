@@ -50,17 +50,11 @@ MSA_realEstate_data <- MSA_demo_data %>%
 
 ```
 
-```{r}
-```
-
-```{r}
-# calculate income to home price
-```
 
 
 ```{r}
 # normalize columns into new data table
-n_MSA_realEstate_data <- MSA_realEstate_data %>% 
+MSA_realEstate_data <- MSA_realEstate_data %>% 
   # normalize population data
   mutate(n_pop_change = (pop_percent_change20_21 - min(pop_percent_change20_21))/(max(pop_percent_change20_21)-min(pop_percent_change20_21))) %>% 
   # normalize employment growth
@@ -75,18 +69,29 @@ n_MSA_realEstate_data <- MSA_realEstate_data %>%
 
 ```{r}
 # invert normalized rent to income ratio so lower values (more favorable) have higher scores
+MSA_realEstate_data <- MSA_realEstate_data %>% 
+  mutate(income_to_rent_inverted = 1 - n_income_to_rent)
 
-= 1- normalized score
 ```
 
 ```{r}
 # weights from owen
+real_estate_weights <- c()
 
-# place holder column
-MSA_real_estate_score <- 
-  mutate
+#make real_estate_score column
+MSA_realEstate_data <- MSA_realEstate_data %>% 
+  mutate(real_estate_score = MSA) #this is just a place holder
+```
 
-weights <- c()
+```{r}
+size <- dim(MSA_realEstate_data)
 
+for (i in 1:size[1]) {
+  MSA_x_data <- c(MSA_realEstate_data$eviction_notice_days_normalized_inverted[i],
+                  MSA_realEstate_data$security_depopsit_limit_num[i],
+                  MSA_realEstate_data$notice_for_entry_days_num[i]
+                  )
+  MSA_realEstate_data$real_estate_score[i] = weighted.mean(MSA_x_data, real_estate_weights)
+  }
 ```
 
