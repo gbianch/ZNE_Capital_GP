@@ -178,6 +178,23 @@ MSA_employment_yoy <- MSA_employment %>%
 
 ```
 
+```{r}
+# adding portland employment rates from https://data.bls.gov/pdq/SurveyOutputServlet
+portland_employment_data <- read_csv(here("data", "raw", "portland_me_employment.csv")) %>% 
+  row_to_names(row_number = 10) %>% 
+  clean_names() %>% 
+  select(year, jan) %>% 
+  rename(civilian_labor = jan)
+
+employment_data_jan_2021 <- 100-4.9
+employment_data_jan_2022 <- 100- 3.6
+
+yoy <- (employment_data_jan_2022 - employment_data_jan_2021)/ employment_data_jan_2022 *100
+ 
+  
+```
+
+
 ```{r eval = FALSE}
 # average employment from 2000 to 2022
 employment_summary_since2000 <- MSA_employment %>% 
