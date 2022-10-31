@@ -82,8 +82,14 @@ for (i in 1:size[1]) {
 ```
 
 ```{r}
-#PICK UP HERE
-#If there is rent control, immediately disqualify location 
+#If there is rent control, immediately disqualify location (set score to -999)
+for (j in 1:size[1]) {
+  if(MSA_landlord_data$rent_control[j] == "Y"){
+    MSA_landlord_data$landlord_score[j] = -999
+  }
+}
+
+#check calculation
 ```
 
 
