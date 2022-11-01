@@ -190,7 +190,6 @@ employment_data_jan_2021 <- 100-4.9
 employment_data_jan_2022 <- 100- 3.6
 
 yoy <- (employment_data_jan_2022 - employment_data_jan_2021)/ employment_data_jan_2021 *100
- 
   
 ```
 
@@ -267,6 +266,19 @@ ggplot(MSA_payroll, aes(x = payroll_change, y = reorder(MSA, payroll_change), fi
 
 
 <https://www.bls.gov/web/metro.supp.toc.htm> <https://www.bls.gov/web/metro/metro_oty_change.htm> - significant change
+
+2021 Median Rent from https://www.huduser.gov/portal/datasets/50per.html#2021
+
+```{r}
+# median rents from hud
+MSA_median_rent2021_data <- read_csv(here("data", "raw", "2021MSA_medianrent.csv")) %>% 
+  separate(col = cbsasub21,
+           into = c("metro", "cbsa"),
+           sep = -5) %>% 
+  mutate(cbsa = as.double(cbsa)) %>% 
+  select(cbsa, rent50_0, rent50_1, rent50_2, rent50_3, rent50_4) %>% 
+  right_join(potential_MSAs) 
+```
 
 ### House Prices
 
