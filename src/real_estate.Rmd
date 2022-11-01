@@ -15,11 +15,13 @@ library(googlesheets4)
 MSA_demo_data <- read_sheet("https://docs.google.com/spreadsheets/d/12do9sRCAcrIe0K-VcJWXNmmTm_jg5rKjZ0NeJPOm9Jw/edit#gid=0")
 
 city_realEstate_data <- read_sheet("https://docs.google.com/spreadsheets/d/10n55Gt0rySN96OGTQ2_8PzeTcX66n26sOlZBiuiAeBU/edit#gid=808954990")
+
+MSA_median_rent_data <- read_sheet("https://docs.google.com/spreadsheets/d/1oxNxWQRWpANbgb603ShBlw84QkyvsRaH4TzHKKVWhxw/edit#gid=0")
 ```
 
 ```{r}
 # select columns in demographic data
-MSA_demo_data <- MSA_demo_data %>% 
+MSA_demographics <- MSA_demo_data %>% 
   clean_names() %>% 
     # calculate income to home price
   mutate(income_to_homeprice = median_income_usd_2021/house_price_2021) %>% 
@@ -38,18 +40,25 @@ MSA_realEstate_data <- city_realEstate_data %>%
   # calculate change in rent
   mutate(rent_change21_22 = (avg_rent_2022- avg_rent_2021)/avg_rent_2021)
   
-  
+```
+
+```{r}
+# MSA_median rent data
+MSA_realEstate_data<- MSA_median_rent_data %>% 
+  select(cbsa, rent50_1) %>%
+  mutate(rent50_1 = as.numeric(rent50_1)) %>% 
+  left_join(MSA_realEstate_data)
 ```
 
 ```{r}
 # combine real estate and demographic data by cbsa
-MSA_realEstate_data <- MSA_demo_data %>% 
+MSA_realEstate_data <- MSA_demographics %>% 
   left_join(MSA_realEstate_data) %>% 
   # calculate rent to income ratio
-  mutate(rent_to_income = avg_rent_2021/median_income_usd_2021) 
+  mutate(avg_rent_to_income = avg_rent_2021/median_income_usd_2021) %>% 
+  mutate(med_rent_to_income = rent50_1/median_income_usd_2021)
 
 ```
-
 
 
 ```{r}
@@ -60,23 +69,25 @@ MSA_realEstate_data <- MSA_realEstate_data %>%
   # normalize employment growth
   mutate(n_employ_change = (employment_yo_y21_22 - min(employment_yo_y21_22)) / (max(employment_yo_y21_22) - min(employment_yo_y21_22))) %>% 
   # normalize rent to income
-  mutate(n_rent_to_income = (rent_to_income- min(rent_to_income)) / (max(rent_to_income) - min(rent_to_income))) %>% 
+  mutate(n_avg_rent_to_income = (avg_rent_to_income- min(avg_rent_to_income)) / (max(avg_rent_to_income) - min(avg_rent_to_income))) %>% 
+  mutate(n_med_rent_to_income = (med_rent_to_income- min(med_rent_to_income)) / (max(med_rent_to_income) - min(med_rent_to_income))) %>% 
   # normalize income to home price
-  mutate(n_income_to_homeprice = (income_to_homeprice - min(income_to_homeprice)) / (max(income_to_homeprice) - min(income_to_homeprice)))
-  
+  mutate(n_income_to_homeprice = (income_to_homeprice - min(income_to_homeprice)) / (max(income_to_homeprice) - min(income_to_homeprice))) %>% 
+  mutate(n_avg_occupancy = (avg_occupancy_21 - min(avg_occupancy_21))/(max(avg_occupancy_21) - min(avg_occupancy_21)))
 
 ```
 
 ```{r}
 # invert normalized rent to income ratio so lower values (more favorable) have higher scores
 MSA_realEstate_data <- MSA_realEstate_data %>% 
-  mutate(income_to_rent_inverted = 1 - n_income_to_rent)
+  mutate(med_rent_to_income_inverted = 1 - n_med_rent_to_income) %>% 
+  mutate(avg_rent_to_income_inverted = 1 - n_avg_rent_to_income)
 
 ```
 
 ```{r}
 # weights from owen
-real_estate_weights <- c()
+real_estate_weights <- c(0.35, 0.20, 0.15, 0.10, 0.10, 0.10)
 
 #make real_estate_score column
 MSA_realEstate_data <- MSA_realEstate_data %>% 
@@ -87,9 +98,11 @@ MSA_realEstate_data <- MSA_realEstate_data %>%
 size <- dim(MSA_realEstate_data)
 
 for (i in 1:size[1]) {
-  MSA_x_data <- c(MSA_realEstate_data$eviction_notice_days_normalized_inverted[i],
-                  MSA_realEstate_data$security_depopsit_limit_num[i],
-                  MSA_realEstate_data$notice_for_entry_days_num[i]
+  MSA_x_data <- c(MSA_realEstate_data$n_pop_change[i],
+                  MSA_realEstate_data$n_employ_change[i],
+                  MSA_realEstate_data$n_avg_occupancy[i],
+                  MSA_realEstate_data$n_rent_to_income[i],
+                  MSA_realEstate_data$n_income_to_homeprice[i]
                   )
   MSA_realEstate_data$real_estate_score[i] = weighted.mean(MSA_x_data, real_estate_weights)
   }

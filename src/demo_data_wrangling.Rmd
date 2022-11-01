@@ -274,6 +274,9 @@ ggplot(MSA_payroll, aes(x = payroll_change, y = reorder(MSA, payroll_change), fi
 MSA_median_rent2021_data <- read_csv(here("data", "raw", "2021MSA_medianrent.csv")) %>% 
   separate(col = cbsasub21,
            into = c("metro", "cbsa"),
+           sep = 5) %>% 
+  separate(col = cbsa,
+           into = c("cbsa", "unknown"),
            sep = -5) %>% 
   mutate(cbsa = as.double(cbsa)) %>% 
   select(cbsa, rent50_0, rent50_1, rent50_2, rent50_3, rent50_4) %>% 
