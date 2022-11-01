@@ -69,19 +69,19 @@ MSA_realEstate_data <- MSA_realEstate_data %>%
   # normalize employment growth
   mutate(n_employ_change = (employment_yo_y21_22 - min(employment_yo_y21_22)) / (max(employment_yo_y21_22) - min(employment_yo_y21_22))) %>% 
   # normalize rent to income
-  mutate(n_avg_rent_to_income = (avg_rent_to_income- min(avg_rent_to_income)) / (max(avg_rent_to_income) - min(avg_rent_to_income))) %>% 
+  mutate(n_avg_rent_to_income = (avg_rent_to_income- min(avg_rent_to_income, na.rm = TRUE)) / (max(avg_rent_to_income, na.rm = TRUE) - min(avg_rent_to_income, na.rm = TRUE))) %>% 
   mutate(n_med_rent_to_income = (med_rent_to_income- min(med_rent_to_income)) / (max(med_rent_to_income) - min(med_rent_to_income))) %>% 
   # normalize income to home price
   mutate(n_income_to_homeprice = (income_to_homeprice - min(income_to_homeprice)) / (max(income_to_homeprice) - min(income_to_homeprice))) %>% 
-  mutate(n_avg_occupancy = (avg_occupancy_21 - min(avg_occupancy_21))/(max(avg_occupancy_21) - min(avg_occupancy_21)))
+  mutate(n_avg_occupancy = (avg_occupancy_21 - min(avg_occupancy_21, na.rm = TRUE))/(max(avg_occupancy_21, na.rm = TRUE) - min(avg_occupancy_21, na.rm = TRUE)))
 
 ```
 
 ```{r}
 # invert normalized rent to income ratio so lower values (more favorable) have higher scores
 MSA_realEstate_data <- MSA_realEstate_data %>% 
-  mutate(med_rent_to_income_inverted = 1 - n_med_rent_to_income) %>% 
-  mutate(avg_rent_to_income_inverted = 1 - n_avg_rent_to_income)
+  mutate(n_med_rent_to_income_inverted = 1 - n_med_rent_to_income) %>% 
+  mutate(n_avg_rent_to_income_inverted = 1 - n_avg_rent_to_income)
 
 ```
 
