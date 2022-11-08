@@ -47,8 +47,8 @@ MSA_realEstate_data <- city_realEstate_data %>%
 ```{r}
 # add MSA_median rent data
 MSA_realEstate_compiled<- MSA_median_rent_data %>% 
-  select(cbsa, rent50_1) %>%
-  mutate(rent50_1 = as.numeric(rent50_1)) %>% 
+  select(cbsa, rent50_0) %>%
+  mutate(median_rent = as.numeric(rent50_0)) %>% 
   left_join(MSA_realEstate_data) %>% 
   left_join(MSA_demographics)
 ```
@@ -60,7 +60,7 @@ MSA_RE_ratios <- MSA_realEstate_compiled %>%
   mutate(income_to_homeprice = median_income_usd_2021/house_price_2021) %>% 
   # calculate rent to income ratio
   mutate(avg_rent_to_income = avg_rent_2021/median_income_usd_2021) %>% 
-  mutate(med_rent_to_income = rent50_1/median_income_usd_2021)
+  mutate(med_rent_to_income = median_rent/median_income_usd_2021)
 
 ```
 
@@ -78,7 +78,7 @@ n_MSA_realEstate <- MSA_RE_ratios %>%
   # normalize income to home price
   mutate(n_income_to_homeprice = (income_to_homeprice - min(income_to_homeprice)) / (max(income_to_homeprice) - min(income_to_homeprice))) %>% 
   mutate(n_avg_occupancy = (avg_occupancy_21 - min(avg_occupancy_21, na.rm = TRUE)) / (max(avg_occupancy_21, na.rm = TRUE) - min(avg_occupancy_21, na.rm = TRUE))) %>% 
-  mutate(n_rent_change = (avg_rent_change - min(avg_rent_change, na.rm = TRUE)) / (max(avg_rent_change, na.rm = TRUE) - min(avg_rent_change, na.rm = TRUE)))
+  mutate(n_rent_change = (avg_rent_change - min(avg_rent_change, na.rm = TRUE)) / (max(avg_rent_change, na.rm = TRUE) - min(avg_rent_change, na.rm = TRUE))) 
 
 ```
 
