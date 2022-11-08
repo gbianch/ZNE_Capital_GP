@@ -32,13 +32,14 @@ MSA_demographics <- MSA_demo_data %>%
 # aggregate yardi data into MSAs by cbsa
 MSA_realEstate_data <- city_realEstate_data %>% 
   clean_names() %>% 
+   # calculate change in rent
+  mutate(rent_change = (x2022_rent - average_rent_2021)/average_rent_2021 * 100) %>% 
   group_by(cbsa) %>% 
   # calculate average values for MSAs with more than one city
   summarize(avg_rent_2021 = mean(average_rent_2021, na.rm = TRUE),
             avg_rent_2022 = mean(x2022_rent, na.rm = TRUE),
-            avg_occupancy_21 = mean(percent_occupancy_2021, na.rm = TRUE)) %>% 
-  # calculate change in rent
-  mutate(rent_change21_22 = ((avg_rent_2022- avg_rent_2021)/avg_rent_2021)*100)
+            avg_occupancy_21 = mean(percent_occupancy_2021, na.rm = TRUE),
+            avg_rent_change = mean(rent_change, na.rm = TRUE))
   
   
 ```
