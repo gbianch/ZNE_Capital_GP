@@ -78,7 +78,7 @@ n_MSA_realEstate <- MSA_RE_ratios %>%
   # normalize income to home price
   mutate(n_income_to_homeprice = (income_to_homeprice - min(income_to_homeprice)) / (max(income_to_homeprice) - min(income_to_homeprice))) %>% 
   mutate(n_avg_occupancy = (avg_occupancy_21 - min(avg_occupancy_21, na.rm = TRUE)) / (max(avg_occupancy_21, na.rm = TRUE) - min(avg_occupancy_21, na.rm = TRUE))) %>% 
-  mutate(n_rent_change = (rent_change21_22 - min(rent_change21_22, na.rm = TRUE)) / (max(rent_change21_22, na.rm = TRUE) - min(rent_change21_22, na.rm = TRUE)))
+  mutate(n_rent_change = (avg_rent_change - min(avg_rent_change, na.rm = TRUE)) / (max(avg_rent_change, na.rm = TRUE) - min(avg_rent_change, na.rm = TRUE)))
 
 ```
 
