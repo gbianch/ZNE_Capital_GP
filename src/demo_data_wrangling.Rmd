@@ -55,7 +55,8 @@ potential_MSAs <- msa_pop_2021_data %>%
   filter (!state %in% c("CA", "HI", "AK")) %>% 
   #separate(col = "state", into = c("state1", "state2", "state3"),    sep = "-") %>% 
   filter(!cbsa %in% c("10580", "10900", "12420", "12940", "14260", "15980", "18580", "19100", "19660", "19740", "23540", "25420", "26420", "27260", "29820", "34940", "36260", "36740", "38060", "39100", "39300", "39340", "41620", "45220", "45300", "46060", "46140", "39900")) %>%  # remove MSAs as instructed by Owen 
-  select(cbsa, MSA, state, pop_percent_change20_21) 
+  mutate(normalized_pop2021 = (popestimate2021-min(popestimate2021))/ (max(popestimate2021)-min(popestimate2021))) %>% 
+  select(cbsa, MSA, state, pop_percent_change20_21, normalized_pop2021) 
 
 ```
 
@@ -115,14 +116,15 @@ MSA_income_data <- read_csv(here("data","raw", "MSA_income", "2021_data", "2021_
   mutate(cbsa = as.numeric(cbsa)) # change column class from chr to dbl
   
 # join population growth data set to household median income
-MSA_house_income <- MSA_income_data %>% # rename row names
+income_potential_MSAs <- MSA_income_data %>% # rename row names
+  select(cbsa, median_income) %>% 
   inner_join(potential_MSAs) %>% 
-  select(cbsa, MSA, state,median_income, income_moe_USD) 
+  select(cbsa, MSA, state, median_income, pop_percent_change20_21, normalized_pop2021) #reorder columns
 #select(cbsa, MSA, state, pop_percent_change20_21, median_income, income_moe_USD) 
 
 ```
 
-```{r, household income visual, fig.height = 7, fig.align='center'}
+```{r, household income visual, fig.height = 7, fig.align='center', eval = FALSE}
 ggplot(MSA_house_income, aes(x = median_income, y = reorder(MSA, median_income))) +
   geom_errorbarh(aes(xmin = median_income - income_moe_USD, xmax = median_income + income_moe_USD)) + 
   geom_point(size = 3, color = "darkgreen") + 
@@ -159,22 +161,31 @@ unemployment_data <- read_csv(here("data", "raw", "civil_labor_force_BLS.csv")) 
 
 # data wrangling, only selecting data for potential MSAs
 MSA_employment <- unemployment_data %>% 
-  filter(year >= 2015) %>% 
-  full_join(MSA_house_income) %>% 
+  filter(year >= 2020) %>% 
+  full_join(income_potential_MSAs) %>% 
   drop_na() %>% 
-  select(cbsa, MSA, year, month, employment_rate, median_income, income_moe_USD)
+  select(cbsa, MSA, year, month, employment_rate)
+
+avg_emp_yoy <- MSA_employment %>% 
+  group_by(MSA, year) %>% 
+  summarize(avg_employment_rate = mean(employment_rate)) %>% 
+  mutate(avg_emp_YoY = (avg_employment_rate-lag(avg_employment_rate))/lag(avg_employment_rate)*100) %>% 
+  drop_na()
+
   
 # calculate YoY growth 
 MSA_employment_yoy <- MSA_employment %>% 
-  filter(year >= 2016) %>% 
+  filter(year >= 2020) %>% 
   filter(month == "01") %>% 
   arrange(MSA, month) %>% 
   group_by(MSA) %>% 
   mutate(YoY = (employment_rate-lag(employment_rate))/lag(employment_rate)*100) %>% 
   mutate(employment_YoY = round(YoY, digits = 3)) %>% 
-  mutate(emp_pos = employment_YoY >= 0) %>% # function to create column for yoy value, true = positive YoY
-  select(!c(YoY, month)) %>% 
-  drop_na()
+  mutate(emp_pos = employment_YoY >= 0) %>%# function to create column for yoy value, true = positive YoY
+  inner_join(avg_emp_yoy) %>% 
+  filter(year == "2022") %>% 
+  select(!c(YoY, month, year)) 
+
 
 ```
 
@@ -190,6 +201,9 @@ employment_data_jan_2021 <- 100-4.9
 employment_data_jan_2022 <- 100- 3.6
 
 yoy <- (employment_data_jan_2022 - employment_data_jan_2021)/ employment_data_jan_2021 *100
+
+potential_MSAs <- potential_MSAs %>% 
+  
   
 ```
 
@@ -210,7 +224,7 @@ employment_summary_since2000 <- MSA_employment %>%
 # visual of MSA employment rates, shows major drop during covid
 ggplot(MSA_employment_yoy, aes(x = year, y = employment_rate, color = MSA)) +
   geom_line() +
-  xlim(2016, 2022) +
+  xlim(2021, 2022) +
   theme(legend.position = "none") +
 
   labs(x = "Year",
@@ -230,7 +244,7 @@ ggplot(MSA_employment_yoy, aes(x = employment_YoY, y = reorder(MSA, employment_Y
 
 
 
-```{r payroll data}
+```{r payroll data, eval = FALSE}
 # payroll data has not been added to final table
 payroll_data <- read_csv(here("data","raw", "employee_payroll_MSA21_22.csv")) %>% 
   row_to_names(4) %>% 
@@ -253,7 +267,7 @@ MSA_payroll <- payroll_data %>%
   mutate(payroll_pos = payroll_change >= 0)
    
 ```
-```{r payroll visual, fig.height = 7}
+```{r payroll visual, fig.height = 7, eval = FALSE}
 ggplot(MSA_payroll, aes(x = payroll_change, y = reorder(MSA, payroll_change), fill = payroll_pos)) +
   geom_col(position = "identity", color = "black", size = 0.25) +
   scale_fill_manual(values = c("red", "darkolivegreen3"), guide = FALSE) +
@@ -269,18 +283,35 @@ ggplot(MSA_payroll, aes(x = payroll_change, y = reorder(MSA, payroll_change), fi
 
 2021 Median Rent from https://www.huduser.gov/portal/datasets/50per.html#2021
 
-```{r}
+```{r median rent}
 # median rents from hud
 MSA_median_rent2021_data <- read_csv(here("data", "raw", "2021MSA_medianrent.csv")) %>% 
   separate(col = cbsasub21,
            into = c("metro", "cbsa"),
            sep = 5) %>% 
   separate(col = cbsa,
-           into = c("cbsa", "unknown"),
+           into = c("unknown", "cbsa"),
            sep = -5) %>% 
   mutate(cbsa = as.double(cbsa)) %>% 
-  select(cbsa, rent50_0, rent50_1, rent50_2, rent50_3, rent50_4) %>% 
+  mutate(median_rent2021 = as.numeric(rent50_0)) %>% 
+  select(cbsa, median_rent2021) %>% 
   right_join(potential_MSAs) 
+
+MSA_median_rent2022_data <- read_csv(here("data", "raw", "2022MSA_median_rent.csv")) %>% 
+  separate(col = cbsasub22,
+           into = c("metro", "cbsa"),
+           sep = 5) %>% 
+  separate(col = cbsa,
+           into = c("unknown", "cbsa"),
+           sep = -5) %>% 
+  mutate(cbsa = as.double(cbsa)) %>% 
+  mutate(median_rent2022 = as.numeric(rent_50_0)) %>% 
+  select(cbsa, median_rent2022)
+
+potential_MSAs <- potential_MSAs %>% 
+  right_join(MSA_median_rent2022_data) %>% 
+  drop_na()
+  
 ```
 
 ### House Prices
@@ -332,7 +363,7 @@ The following MSAs were not included in the housing dataset:
 - Salisbury, MD
 - Savannah, GA
 
-```{r, house price visual, fig.height = 7, fig.align='center'}
+```{r, house price visual, fig.height = 7, fig.align='center', eval = FALSE}
 ggplot(metro_house_prices, aes(x = houseprice_change21_22, y = reorder(MSA, houseprice_change21_22))) +
   geom_col(fill = "dodgerblue4") +
   geom_text(aes(label = houseprice_change21_22),
@@ -353,7 +384,7 @@ Dataset: B25103  MORTGAGE STATUS BY MEDIAN REAL ESTATE TAXES PAID (USD) in 2019
 
 Source:[U.S. Census Bureau](https://data.census.gov/cedsci/table?q=property%20tax&g=0100000US%2431000M1&d=ACS%201-Year%20Estimates%20Detailed%20Tables&tid=ACSDT1Y2019.B25103&tp=true)
 
-```{r property taxes data wrangling}
+```{r property taxes data wrangling, eval = FALSE}
 property_tax_data <- read_csv(here("data","raw", "wide_property_tax_data.csv")) 
 
 # create new data frame with tax estimate values
@@ -396,7 +427,7 @@ MSA_property_tax <- metro_house_prices %>%
   
 ```
 
-```{r property tax visual, fig.height = 7, fig.align='center'}
+```{r property tax visual, fig.height = 7, fig.align='center', eval = FALSE}
 ggplot(MSA_property_tax, aes(x = median_tax_USD, y = reorder(MSA, median_tax_USD))) +
   geom_errorbarh(aes(xmin = median_tax_USD - tax_moe_USD, xmax = median_tax_USD + tax_moe_USD)) + 
   geom_point(size = 3, color = "darkgreen") + 
@@ -416,7 +447,7 @@ MSApop_income_housecost_tax_emp <- MSA_employment_yoy %>%
   filter(year == "2022") %>% 
   mutate(employment_rate = round(employment_rate, digits = 3)) %>% 
   select(cbsa, year, employment_rate, employment_YoY) %>% 
-  right_join(MSA_property_tax) %>% 
+  # right_join(MSA_property_tax) %>% 
   select(!year)
   
 ```
