@@ -48,7 +48,7 @@ msa_pop_2021_data <- read_csv(here("data","raw", "msa_2021_alldata.csv")) %>%
            sep = ", ") %>% 
   mutate(pop_percent_change = (popestimate2021-popestimate2020)/popestimate2021 * 100)  # add population % change column 
 
-# create __ 
+# create object with viable MSAs 
 potential_MSAs <- msa_pop_2021_data %>% 
   filter(pop_percent_change > 0.5 ) %>% 
   mutate(pop_percent_change20_21 = round(pop_percent_change, digits = 3)) %>% 
@@ -56,7 +56,7 @@ potential_MSAs <- msa_pop_2021_data %>%
   #separate(col = "state", into = c("state1", "state2", "state3"),    sep = "-") %>% 
   filter(!cbsa %in% c("10580", "10900", "12420", "12940", "14260", "15980", "18580", "19100", "19660", "19740", "23540", "25420", "26420", "27260", "29820", "34940", "36260", "36740", "38060", "39100", "39300", "39340", "41620", "45220", "45300", "46060", "46140", "39900")) %>%  # remove MSAs as instructed by Owen 
   mutate(normalized_pop2021 = (popestimate2021-min(popestimate2021))/ (max(popestimate2021)-min(popestimate2021))) %>% 
-  select(cbsa, MSA, state, pop_percent_change20_21, normalized_pop2021) 
+  select(cbsa, MSA, state, pop_percent_change20_21, normalized_pop2021, popestimate2021) 
 
 ```
 
@@ -119,8 +119,8 @@ MSA_income_data <- read_csv(here("data","raw", "MSA_income", "2021_data", "2021_
 income_potential_MSAs <- MSA_income_data %>% # rename row names
   select(cbsa, median_income) %>% 
   inner_join(potential_MSAs) %>% 
-  select(cbsa, MSA, state, median_income, pop_percent_change20_21, normalized_pop2021) #reorder columns
-#select(cbsa, MSA, state, pop_percent_change20_21, median_income, income_moe_USD) 
+  select(cbsa, MSA, state, median_income, pop_percent_change20_21, popestimate2021, normalized_pop2021) #reorder columns
+
 
 ```
 
@@ -161,7 +161,7 @@ unemployment_data <- read_csv(here("data", "raw", "civil_labor_force_BLS.csv")) 
 
 # data wrangling, only selecting data for potential MSAs
 MSA_employment <- unemployment_data %>% 
-  filter(year >= 2020) %>% 
+  filter(year >= 2019) %>% 
   full_join(income_potential_MSAs) %>% 
   drop_na() %>% 
   select(cbsa, MSA, year, month, employment_rate)
@@ -170,23 +170,14 @@ avg_emp_yoy <- MSA_employment %>%
   group_by(MSA, year) %>% 
   summarize(avg_employment_rate = mean(employment_rate)) %>% 
   mutate(avg_emp_YoY = (avg_employment_rate-lag(avg_employment_rate))/lag(avg_employment_rate)*100) %>% 
-  drop_na()
+  mutate(avg_emp_YoY = round(avg_emp_YoY, digits = 3)) %>% 
+  drop_na() 
 
+MSA_emp_income <- income_potential_MSAs %>% 
+  right_join(avg_emp_yoy) %>% 
+  filter(year == "2021") %>% 
+  select(!c(avg_employment_rate, year))
   
-# calculate YoY growth 
-MSA_employment_yoy <- MSA_employment %>% 
-  filter(year >= 2020) %>% 
-  filter(month == "01") %>% 
-  arrange(MSA, month) %>% 
-  group_by(MSA) %>% 
-  mutate(YoY = (employment_rate-lag(employment_rate))/lag(employment_rate)*100) %>% 
-  mutate(employment_YoY = round(YoY, digits = 3)) %>% 
-  mutate(emp_pos = employment_YoY >= 0) %>%# function to create column for yoy value, true = positive YoY
-  inner_join(avg_emp_yoy) %>% 
-  filter(year == "2022") %>% 
-  select(!c(YoY, month, year)) 
-
-
 ```
 
 ```{r}
@@ -202,13 +193,12 @@ employment_data_jan_2022 <- 100- 3.6
 
 yoy <- (employment_data_jan_2022 - employment_data_jan_2021)/ employment_data_jan_2021 *100
 
-potential_MSAs <- potential_MSAs %>% 
-  
-  
+
 ```
 
 
-```{r eval = FALSE}
+
+```{r employment visuals, fig.align = "center", fig.show="hold", fig.height= 7, fig.width=10, eval = FALSE}
 # average employment from 2000 to 2022
 employment_summary_since2000 <- MSA_employment %>% 
   group_by(MSA) %>% 
@@ -218,9 +208,6 @@ employment_summary_since2000 <- MSA_employment %>%
     sd_employment = sd(employment_rate)
   )
 
-```
-
-```{r employment visuals, fig.align = "center", fig.show="hold", fig.height= 7, fig.width=10}
 # visual of MSA employment rates, shows major drop during covid
 ggplot(MSA_employment_yoy, aes(x = year, y = employment_rate, color = MSA)) +
   geom_line() +
@@ -237,11 +224,9 @@ ggplot(MSA_employment_yoy, aes(x = employment_YoY, y = reorder(MSA, employment_Y
   scale_fill_manual(values = c("red", "darkolivegreen3"), guide = FALSE) +
   facet_grid(~year) +
   labs(x = "Year-over_year change in employment rate",
-       y = "")
+       y = " ")
 
 ```
-
-
 
 
 ```{r payroll data, eval = FALSE}
@@ -267,6 +252,7 @@ MSA_payroll <- payroll_data %>%
   mutate(payroll_pos = payroll_change >= 0)
    
 ```
+
 ```{r payroll visual, fig.height = 7, eval = FALSE}
 ggplot(MSA_payroll, aes(x = payroll_change, y = reorder(MSA, payroll_change), fill = payroll_pos)) +
   geom_col(position = "identity", color = "black", size = 0.25) +
@@ -306,11 +292,11 @@ MSA_median_rent2022_data <- read_csv(here("data", "raw", "2022MSA_median_rent.cs
            sep = -5) %>% 
   mutate(cbsa = as.double(cbsa)) %>% 
   mutate(median_rent2022 = as.numeric(rent_50_0)) %>% 
-  select(cbsa, median_rent2022)
+  select(cbsa, median_rent2022) %>% 
+  right_join(MSA_median_rent2021_data)
 
-potential_MSAs <- potential_MSAs %>% 
-  right_join(MSA_median_rent2022_data) %>% 
-  drop_na()
+potential_MSAs <- MSA_median_rent2022_data %>% 
+  left_join(MSA_emp_income)
   
 ```
 
@@ -321,26 +307,21 @@ Median housing prices by MSA were obtained from the Association of Realtors for 
 Source: [The National Association of Realtors](https://www.nar.realtor/research-and-statistics/housing-statistics/metropolitan-median-area-prices-and-affordability)
 
 ```{r house price data}
-metro_house_cost_data <- read_csv(here("data","raw", "metro_home_costs", "metro_home_prices.csv")) %>% 
+metro_house_cost_data <- read_csv(here("data","raw", "metro_home_costs", "metro-home-prices-2022-11-10.csv")) %>% 
   row_to_names(3) %>% 
   clean_names() %>% 
   separate(col = "metropolitan_area",
            into = c("cbsa", 'metro_area'),
            sep = 5) %>% 
   mutate(cbsa = as.numeric(cbsa)) %>% 
-  mutate(x2020 = as.numeric(x2020))
+  mutate(x2021 = as.numeric(x2021)) %>% 
+  mutate(x2021 = x2021 * 1000) %>% 
+  rename(house_price_2021 = x2021) 
 
-metro_house_prices <- MSA_house_income %>%
-  left_join(metro_house_cost_data)  %>% 
-  rename(house_price_2020 = x2020) %>% 
-  rename(house_price_2021 = x2021_r) %>% 
-  rename(houseprice_change21_22 = q1_q1) %>% 
-  select(!c(metro_area, x2019, na)) %>% 
-  # select(cbsa, houseprice_change21_22) %>% 
-  separate(col = "houseprice_change21_22",
-           into = "houseprice_change21_22",
-           sep = "%") %>% 
-  mutate(houseprice_change21_22 = as.numeric(houseprice_change21_22))
+metro_house_prices <- metro_house_cost_data %>%
+  select(cbsa, house_price_2021) %>% 
+  right_join(potential_MSAs) %>% 
+  select(cbsa, MSA, state, pop_percent_change20_21, normalized_pop2021, popestimate2021, median_income, avg_emp_YoY, median_rent2021, median_rent2022, house_price_2021)
 ```
 
 ```{r house price exploratory, eval = FALSE}
@@ -441,23 +422,11 @@ ggplot(MSA_property_tax, aes(x = median_tax_USD, y = reorder(MSA, median_tax_USD
 
 
 
-```{r join population, unemployment, income, and house price data}
-# join employment data with income, house prices, tax, and population data
-MSApop_income_housecost_tax_emp <- MSA_employment_yoy %>%
-  filter(year == "2022") %>% 
-  mutate(employment_rate = round(employment_rate, digits = 3)) %>% 
-  select(cbsa, year, employment_rate, employment_YoY) %>% 
-  # right_join(MSA_property_tax) %>% 
-  select(!year)
-  
-```
-
-
 ### MSA data table
 
 ```{r data table}
 # table seperated by MSAs
-datatable(MSApop_income_housecost_tax_emp, extensions = 'Buttons', options = list(
+datatable(metro_house_prices, extensions = 'Buttons', options = list(
     dom = 'Bfrtip',
     buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
   )
@@ -469,7 +438,7 @@ MSAs were split up by cities to collect utility, rent, and landlord data.
 
 ```{r MSAs seperate into cities}
 #  split up MSAs into cities to collect utility, rent, and landlord data.
-msa_seperated <- MSApop_income_housecost_tax_emp %>% 
+msa_seperated <- metro_house_prices %>% 
   separate_rows(MSA, sep = "-") %>% 
   rename(city = MSA)# %>% # seperate MSA cities into their own columns
  # full_join(payroll_data, by = c("MSA" = "area")) %>% 
