@@ -174,7 +174,7 @@ avg_emp_yoy <- MSA_employment %>%
   drop_na() 
 
 MSA_emp_income <- income_potential_MSAs %>% 
-  right_join(avg_emp_yoy) %>% 
+  full_join(avg_emp_yoy) %>% 
   filter(year == "2021") %>% 
   select(!c(avg_employment_rate, year))
   
@@ -182,11 +182,13 @@ MSA_emp_income <- income_potential_MSAs %>%
 
 ```{r}
 # adding portland employment rates from https://data.bls.gov/pdq/SurveyOutputServlet
-portland_employment_data <- read_csv(here("data", "raw", "portland_me_employment.csv")) %>% 
-  row_to_names(row_number = 10) %>% 
-  clean_names() %>% 
-  select(year, jan) %>% 
-  rename(civilian_labor = jan)
+portland_employment_data <- unemployment_data %>% 
+  filter(year >= 2019) %>% 
+  filter(cbsa == "76750") %>% 
+   group_by(year) %>% 
+  summarize(avg_employment_rate = mean(employment_rate)) %>% 
+  mutate(avg_emp_YoY = (avg_employment_rate-lag(avg_employment_rate))/lag(avg_employment_rate)*100) %>% 
+  mutate(avg_emp_YoY = round(avg_emp_YoY, digits = 3))
 
 employment_data_jan_2021 <- 100-4.9
 employment_data_jan_2022 <- 100- 3.6
