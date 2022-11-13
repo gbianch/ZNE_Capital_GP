@@ -17,6 +17,8 @@ MSA_demo_data <- read_sheet("https://docs.google.com/spreadsheets/d/12do9sRCAcrI
 city_realEstate_data <- read_sheet("https://docs.google.com/spreadsheets/d/10n55Gt0rySN96OGTQ2_8PzeTcX66n26sOlZBiuiAeBU/edit#gid=808954990")
 
 MSA_median_rent_data <- read_sheet("https://docs.google.com/spreadsheets/d/1oxNxWQRWpANbgb603ShBlw84QkyvsRaH4TzHKKVWhxw/edit#gid=0")
+
+select_MSAs <- read_sheet("https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit?usp=sharing")
 ```
 
 ```{r}
@@ -147,5 +149,13 @@ for (i in 1:size[1]) {
                   )
   n_MSA_realEstate$RE_score_avg_rent[i] = weighted.mean(MSA_x_data, real_estate_weights)
 }
+```
+
+```{r}
+#FILTER BY NEW MSA LIST
+new_MSA_list <- unique(select_MSAs$cbsa)
+
+n_MSA_realEstate_select_MSAs <- n_MSA_realEstate %>% 
+  filter(cbsa %in% c(new_MSA_list))
 ```
 
