@@ -14,16 +14,20 @@ library(tidyverse)
 library(kableExtra)
 
 MSA_landlord_data <- read_sheet("https://docs.google.com/spreadsheets/d/1zCePYRyJ5lb1Z5jvCujg17EtwqpxJN1E1_HwJL66uLM/edit#gid=122953884") 
+
+select_MSAs <- read_sheet("https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit?usp=sharing")
 ```
 
 ```{r}
-# #rent_control
-# MSA_landlord_data <- MSA_landlord_data %>% 
-#   mutate(
-#     rent_control_binary = case_when(
-#       rent_control == "N" ~ 1, 
-#       rent_control == "Y" ~ 0))
+#filter by new MSA list
+new_MSA_list <- unique(select_MSAs$cbsa)
 
+MSA_landlord_data <- MSA_landlord_data %>% 
+  filter(cbsa %in% c(new_MSA_list))
+```
+
+
+```{r}
 #security_deposit_limit
 MSA_landlord_data <- MSA_landlord_data %>% 
   mutate(
@@ -88,8 +92,6 @@ for (j in 1:size[1]) {
     MSA_landlord_data$landlord_score[j] = -999
   }
 }
-
-#check calculation
 ```
 
 
