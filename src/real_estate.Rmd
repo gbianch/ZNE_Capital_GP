@@ -12,78 +12,62 @@ library(tidyverse)
 library(janitor)
 library(googlesheets4)
 
-MSA_demo_data <- read_sheet("https://docs.google.com/spreadsheets/d/12do9sRCAcrIe0K-VcJWXNmmTm_jg5rKjZ0NeJPOm9Jw/edit#gid=0")
 
 city_realEstate_data <- read_sheet("https://docs.google.com/spreadsheets/d/10n55Gt0rySN96OGTQ2_8PzeTcX66n26sOlZBiuiAeBU/edit#gid=808954990")
 
-MSA_median_rent_data <- read_sheet("https://docs.google.com/spreadsheets/d/1oxNxWQRWpANbgb603ShBlw84QkyvsRaH4TzHKKVWhxw/edit#gid=0")
-
 select_MSAs <- read_sheet("https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit?usp=sharing")
-```
 
-```{r}
-# select columns in demographic data
-MSA_demographics <- MSA_demo_data %>% 
-  clean_names() %>% 
-  # convert house prices to be in thousands
-  mutate(house_price_2021 = house_price_2021 * 1000) %>% 
-  select(cbsa, msa, state, employment_yo_y21_22, pop_percent_change20_21, median_income_usd_2021, house_price_2021)
 ```
 
 ```{r}
 # aggregate yardi data into MSAs by cbsa
 MSA_realEstate_data <- city_realEstate_data %>% 
   clean_names() %>% 
+  rename(avg_rent2022 = x2022_rent) %>% 
    # calculate change in rent
-  mutate(rent_change = (x2022_rent - average_rent_2021)/average_rent_2021 * 100) %>% 
+  mutate(rent_change = (avg_rent2022 - average_rent_2021)/average_rent_2021 * 100) %>% 
   group_by(cbsa) %>% 
   # calculate average values for MSAs with more than one city
   summarize(avg_rent_2021 = mean(average_rent_2021, na.rm = TRUE),
-            avg_rent_2022 = mean(x2022_rent, na.rm = TRUE),
+            avg_rent_2022 = mean(avg_rent2022, na.rm = TRUE),
             avg_occupancy_21 = mean(percent_occupancy_2021, na.rm = TRUE),
             avg_rent_change = mean(rent_change, na.rm = TRUE))
-  
   
 ```
 
 ```{r}
 # add MSA_median rent data
-MSA_realEstate_compiled<- MSA_median_rent_data %>% 
-  select(cbsa, rent50_0) %>%
-  mutate(median_rent = as.numeric(rent50_0)) %>% 
+compliedMSA_realEstate<- select_MSAs %>% 
   left_join(MSA_realEstate_data) %>% 
-  left_join(MSA_demographics)
-```
-
-```{r}
-# combine real estate and demographic data by cbsa
-MSA_RE_ratios <- MSA_realEstate_compiled %>% 
-      # calculate income to home price
-  mutate(income_to_homeprice = median_income_usd_2021/house_price_2021) %>% 
+    # calculate rent change
+  mutate(med_rent_change = (median_rent2022 - median_rent2021)/median_rent2021 * 100) %>% 
+  # calculate income to homeprice
+  mutate(income_to_homeprice = median_income/house_price_2021) %>% 
   # calculate rent to income ratio
   # multiply monthly rent x 12 for annual rent!
-  mutate(avg_rent_to_income = (avg_rent_2021*12)/median_income_usd_2021) %>% 
-  mutate(med_rent_to_income = (median_rent*12)/median_income_usd_2021)
+  mutate(avg_rent_to_income = (avg_rent_2021*12)/median_income) %>% 
+  mutate(med_rent_to_income = (median_rent2021*12)/median_income)
 
 ```
+
 
 
 ```{r}
 # normalize columns into new data table
-n_MSA_realEstate <- MSA_RE_ratios %>% 
+n_MSA_realEstate <- compliedMSA_realEstate %>% 
   # normalize population data
-  mutate(n_pop_change = (pop_percent_change20_21 - min(pop_percent_change20_21))/(max(pop_percent_change20_21)-min(pop_percent_change20_21))) %>% 
+  mutate(n_pop_change = (pop_percent_change20_21 - min(pop_percent_change20_21))/(max(pop_percent_change20_21)-min(pop_percent_change20_21))) %>%
   # normalize employment growth
-  mutate(n_employ_change = (employment_yo_y21_22 - min(employment_yo_y21_22)) / (max(employment_yo_y21_22) - min(employment_yo_y21_22))) %>% 
+  mutate(n_employ_change = (avg_emp_YoY - min(avg_emp_YoY)) / (max(avg_emp_YoY) - min(avg_emp_YoY))) %>% 
   # normalize rent to income
-  mutate(n_avg_rent_to_income = (avg_rent_to_income- min(avg_rent_to_income, na.rm = TRUE)) / (max(avg_rent_to_income, na.rm = TRUE) - min(avg_rent_to_income, na.rm = TRUE))) %>% 
   mutate(n_med_rent_to_income = (med_rent_to_income- min(med_rent_to_income)) / (max(med_rent_to_income) - min(med_rent_to_income))) %>% 
   # normalize income to home price
+  mutate(n_med_rent_change = (med_rent_change - min(med_rent_change)) / (max(med_rent_change) - min(med_rent_change))) %>% 
   mutate(n_income_to_homeprice = (income_to_homeprice - min(income_to_homeprice)) / (max(income_to_homeprice) - min(income_to_homeprice))) %>% 
-  # normalize occupancy data
+  mutate(n_avg_rent_to_income = (avg_rent_to_income- min(avg_rent_to_income, na.rm = TRUE)) / (max(avg_rent_to_income, na.rm = TRUE) - min(avg_rent_to_income, na.rm = TRUE))) %>% 
   mutate(n_avg_occupancy = (avg_occupancy_21 - min(avg_occupancy_21, na.rm = TRUE)) / (max(avg_occupancy_21, na.rm = TRUE) - min(avg_occupancy_21, na.rm = TRUE))) %>% 
   # normalize rent change
-  mutate(n_rent_change = (avg_rent_change - min(avg_rent_change, na.rm = TRUE)) / (max(avg_rent_change, na.rm = TRUE) - min(avg_rent_change, na.rm = TRUE))) 
+  mutate(n_avg_rent_change = (avg_rent_change - min(avg_rent_change, na.rm = TRUE)) / (max(avg_rent_change, na.rm = TRUE) - min(avg_rent_change, na.rm = TRUE))) 
 
 ```
 
@@ -101,10 +85,12 @@ n_MSA_realEstate<- n_MSA_realEstate %>%
   mutate(weighted_pop_change = 0.35 * n_pop_change) %>% 
   mutate(weight_emp = 0.20 * n_employ_change) %>% 
   mutate(weighted_occ = 0.15 * n_avg_occupancy) %>% 
-  mutate(weighted_rent_change = 0.10 * n_rent_change) %>% 
+  mutate(weighted_avg_rent_change = 0.10 * n_avg_rent_change) %>% 
+  mutate(weighted_med_rent_change = 10* n_med_rent_change) %>% 
   mutate(weighted_med_rent_income = 0.10 * n_med_rent_to_income_inverted) %>% 
   mutate(weight_income_homeprice = 0.10 * n_income_to_homeprice) %>% 
-  mutate(total_score = weighted_pop_change + weight_emp + weighted_occ + weighted_rent_change + weighted_med_rent_income + weight_income_homeprice)
+  mutate(med_total_score = weighted_pop_change + weight_emp + weighted_occ + weighted_med_rent_change + weighted_med_rent_income + weight_income_homeprice) %>% 
+  mutate(avg_total_score = weighted_pop_change + weight_emp + weighted_occ + weighted_avg_rent_change + weighted_avg_rent_income + weight_income_homeprice)
 ```
 
 ```{r}
@@ -113,8 +99,8 @@ real_estate_weights <- c(0.35, 0.20, 0.15, 0.10, 0.10, 0.10)
 
 #make real_estate_score column
 n_MSA_realEstate <- n_MSA_realEstate %>% 
-  select(cbsa, msa, starts_with("n_"), total_score) %>% 
-  mutate(real_estate_score = msa) %>% #this is just a place holder
+  select(cbsa, MSA, starts_with("n_"), total_score) %>% 
+  mutate(real_estate_score_med = msa) %>% #this is just a place holder
   mutate(RE_score_avg_rent = msa)
 ```
 
@@ -130,7 +116,7 @@ for (i in 1:size[1]) {
                   n_MSA_realEstate$n_med_rent_to_income_inverted[i], 
                   n_MSA_realEstate$n_income_to_homeprice[i]
                   )
-  n_MSA_realEstate$real_estate_score[i] = weighted.mean(MSA_x_data, real_estate_weights)
+  n_MSA_realEstate$real_estate_score_med[i] = weighted.mean(MSA_x_data, real_estate_weights)
 }
 
 
@@ -149,13 +135,5 @@ for (i in 1:size[1]) {
                   )
   n_MSA_realEstate$RE_score_avg_rent[i] = weighted.mean(MSA_x_data, real_estate_weights)
 }
-```
-
-```{r}
-#FILTER BY NEW MSA LIST
-new_MSA_list <- unique(select_MSAs$cbsa)
-
-n_MSA_realEstate_select_MSAs <- n_MSA_realEstate %>% 
-  filter(cbsa %in% c(new_MSA_list))
 ```
 
