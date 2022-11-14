@@ -42,7 +42,7 @@ msa_pop_2021_data <- read_csv(here("data","raw", "msa_2021_alldata.csv")) %>%
   clean_names() %>% # data wrangling to make column headers in lower_snake_case
   filter(lsad == "Metropolitan Statistical Area") %>% # select MSA cities
   select("cbsa", "name", "popestimate2020", "popestimate2021", "residual2020", "residual2021") %>% # select data 
-  filter(popestimate2021 >= 500000) %>% 
+  
   separate(col = "name",
            into = c("MSA", "state"), # split city and state data
            sep = ", ") %>% 
@@ -323,7 +323,8 @@ metro_house_cost_data <- read_csv(here("data","raw", "metro_home_costs", "metro-
 metro_house_prices <- metro_house_cost_data %>%
   select(cbsa, house_price_2021) %>% 
   right_join(potential_MSAs) %>% 
-  select(cbsa, MSA, state, pop_percent_change20_21, normalized_pop2021, popestimate2021, median_income, avg_emp_YoY, median_rent2021, median_rent2022, house_price_2021)
+  select(cbsa, MSA, state, pop_percent_change20_21, normalized_pop2021, popestimate2021, median_income, avg_emp_YoY, median_rent2021, median_rent2022, house_price_2021) %>% 
+  filter(popestimate2021 >= 300000)
 ```
 
 ```{r house price exploratory, eval = FALSE}
