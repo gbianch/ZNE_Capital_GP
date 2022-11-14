@@ -94,6 +94,12 @@ for (j in 1:size[1]) {
 }
 ```
 
+```{r}
+#write result to google sheet
+gs4_create("MSA_landlord_score")
+sheet_write(MSA_landlord_data, ss = "https://docs.google.com/spreadsheets/d/1nLpDhM88a3rEBDVK5RZlk2B6QuwVIwvsfE5HeBz0mLo/edit?usp=sharing", sheet = "MSA_landlord_data")
+```
+
 
 
 
