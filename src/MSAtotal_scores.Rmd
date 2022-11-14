@@ -1,0 +1,23 @@
+---
+title: "Total Score"
+author: "Grace Bianchi"
+date: '2022-11-14'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(janitor)
+library(googlesheets4)
+
+```
+
+```{r}
+# read in the data
+category_score_data <- read_sheet(https://docs.google.com/spreadsheets/d/1zu6ta_gI5lF3l2RC5eE3BuUsywYg8gd6xcMfuTKb9Bk/edit#gid=852316062)
+                                  
+
+```
+

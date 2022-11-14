@@ -12,6 +12,7 @@ library(googlesheets4)
 library(janitor)
 library(tidyverse)
 library(kableExtra)
+library(DT)
 
 MSA_landlord_data <- read_sheet("https://docs.google.com/spreadsheets/d/1zCePYRyJ5lb1Z5jvCujg17EtwqpxJN1E1_HwJL66uLM/edit#gid=122953884") 
 
@@ -92,6 +93,12 @@ for (j in 1:size[1]) {
     MSA_landlord_data$landlord_score[j] = -999
   }
 }
+
+datatable(MSA_landlord_data, extensions = 'Buttons', options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+  )
+)
 ```
 
 

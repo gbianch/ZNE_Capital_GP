@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(janitor)
 library(googlesheets4)
+library(DT)
 
 
 city_realEstate_data <- read_sheet("https://docs.google.com/spreadsheets/d/10n55Gt0rySN96OGTQ2_8PzeTcX66n26sOlZBiuiAeBU/edit#gid=808954990")
@@ -130,5 +131,13 @@ for (i in 1:size[1]) {
                   )
   n_MSA_realEstate$RE_score_avg_rent[i] = weighted.mean(MSA_x_data, real_estate_weights)
 }
+```
+
+```{r}
+datatable(n_MSA_realEstate, extensions = 'Buttons', options = list(
+    dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
+  )
+)
 ```
 
