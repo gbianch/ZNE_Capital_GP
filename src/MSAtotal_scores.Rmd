@@ -16,7 +16,9 @@ library(googlesheets4)
 
 ```{r}
 # read in the data
-category_score_data <- read_sheet(https://docs.google.com/spreadsheets/d/1zu6ta_gI5lF3l2RC5eE3BuUsywYg8gd6xcMfuTKb9Bk/edit#gid=852316062)
+real_estate_score_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Ssmb7pUd4NFZocVp9C75SRMOV6tAJCCt0TjrCYBB8pY/edit#gid=2007178520")
+
+landlord_score_data <- read_sheet("https://docs.google.com/spreadsheets/d/1nLpDhM88a3rEBDVK5RZlk2B6QuwVIwvsfE5HeBz0mLo/edit#gid=983090810")
                                   
 
 ```
