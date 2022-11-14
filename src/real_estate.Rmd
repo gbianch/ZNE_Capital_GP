@@ -80,14 +80,6 @@ n_MSA_realEstate <- n_MSA_realEstate %>%
 
 ```
 
-```{r}
-MSA_n_data_avg_rent <- n_MSA_realEstate %>% 
-  select(cbsa, MSA, n_pop_change, n_employ_change, n_avg_occupancy, n_avg_rent_change, n_avg_rent_to_income_inverted, n_income_to_homeprice)
-
-MSA_n_data_med_rent <- n_MSA_realEstate %>% 
-  select(cbsa, MSA, n_pop_change, n_employ_change, n_avg_occupancy, n_med_rent_change, n_med_rent_to_income_inverted, n_income_to_homeprice)
-```
-
 
 ```{r}
 # weights from owen
@@ -95,7 +87,7 @@ real_estate_weights <- c(0.35, 0.20, 0.15, 0.10, 0.10, 0.10)
 
 #make real_estate_score column
 n_MSA_realEstate <- n_MSA_realEstate %>% 
-  select(cbsa, MSA, starts_with("n_")) %>% 
+  select(cbsa, MSA, starts_with("n_"), ) %>% 
   mutate(real_estate_score = MSA) %>% #this is just a place holder
   mutate(RE_score_avg_rent = MSA)
 ```
