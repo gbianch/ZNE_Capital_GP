@@ -43,6 +43,7 @@ compliedMSA_realEstate<- select_MSAs %>%
     # calculate rent change
   mutate(med_rent_change = (median_rent2022 - median_rent2021)/median_rent2021 * 100) %>% 
   # calculate income to homeprice
+  mutate(house_price_2021 = as.numeric(house_price_2021)) %>% 
   mutate(income_to_homeprice = median_income/house_price_2021) %>% 
   # calculate rent to income ratio
   # multiply monthly rent x 12 for annual rent!
@@ -126,7 +127,7 @@ for (i in 1:size[1]) {
 ```
 
 ```{r}
-<<<<<<< HEAD
+# create downloadable data table
 datatable(n_MSA_realEstate, extensions = 'Buttons', options = list(
     dom = 'Bfrtip',
     buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
@@ -134,9 +135,11 @@ datatable(n_MSA_realEstate, extensions = 'Buttons', options = list(
 )
 ```
 
-=======
+```{r}
 #write result to google sheet
-gs4_create("MSA_real_estate_score")
+# gs4_create("MSA_real_estate_score")
 sheet_write(n_MSA_realEstate, ss = "https://docs.google.com/spreadsheets/d/1Ssmb7pUd4NFZocVp9C75SRMOV6tAJCCt0TjrCYBB8pY/edit?usp=sharing", sheet = "n_MSA_realEstate")
 ```
->>>>>>> a3724451758d2d91f880db17312226c512a8f91f
+
+
+

@@ -289,7 +289,8 @@ metro_house_prices <- metro_house_cost_data %>%
   mutate(house_price_2021 = ifelse(cbsa == "32580", "259000", house_price_2021))
 
 MSAs <-metro_house_prices %>% 
-  filter(popestimate2021 >= 500000)
+  filter(popestimate2021 >= 500000) %>% 
+  distinct(cbsa, .keep_all = TRUE) # remove duplicate portland row
 ```
 
 
@@ -329,7 +330,7 @@ datatable(MSAs, extensions = 'Buttons', options = list(
   )
 )
 
-gs4_create("updated_MSAs")
+#gs4_create("updated_MSAs")
 sheet_write(MSAs, ss = "https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=0", sheet = "MSAs")
 ```
 
@@ -338,12 +339,12 @@ MSAs were split up by cities to collect utility, rent, and landlord data.
 
 ```{r MSAs seperate into cities}
 #  split up MSAs into cities to collect utility, rent, and landlord data.
-msa_seperated <- metro_house_prices %>% 
+msa_seperated <- MSAs %>% 
   separate_rows(MSA, sep = "-") %>% 
-  rename(city = MSA) %>% # seperate MSA cities into their own columns
- drop_na(city)
+  rename(city = MSA) %>% # separate MSA cities into their own columns
+  filter(! city == "")
 
-gs4_create("updated_MSAs")
+#gs4_create("updated_MSAs")
 sheet_write(msa_seperated, ss = "https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=0", sheet = "cities")
 
 # table seperated by city
