@@ -21,7 +21,7 @@ library(lubridate)
 library(gridExtra) 
 library(ggrepel)
 library(kableExtra)
-
+library(googlesheets4)
 library(tigris) # Census shape files
 library(sf)
 options(tigris_class = "sf")
@@ -163,6 +163,8 @@ unemployment_data <- read_csv(here("data", "raw", "civil_labor_force_BLS.csv")) 
 # data wrangling, only selecting data for potential MSAs
 MSA_employment <- unemployment_data %>% 
   filter(year >= 2019) %>% 
+  mutate(cbsa = ifelse(cbsa == '76750', "38860", cbsa)) %>% # change south portland, ME to corresponding cbsa
+  mutate(cbsa = as.numeric(cbsa)) %>% 
   full_join(income_potential_MSAs) %>% 
   drop_na() %>% 
   select(cbsa, MSA, year, month, employment_rate)
@@ -174,14 +176,6 @@ avg_emp_yoy <- MSA_employment %>%
   mutate(avg_emp_YoY = round(avg_emp_YoY, digits = 4)) %>% 
   drop_na() 
 
-yoy_test <- MSA_employment %>% 
-  group_by(MSA, year) %>% 
-  summarize(avg_employment_rate = mean(employment_rate)) %>% 
-  filter(year >= "2020") %>% 
-  pivot_wider(names_from = year,
-              values_from = avg_employment_rate,
-              names_prefix = "avg_employment_rate") %>% 
-  mutate(avg_emp_yoy = (avg_employment_rate2021 - avg_employment_rate2020)/avg_employment_rate2020 *100)
 
 MSA_emp_income <- income_potential_MSAs %>% 
   full_join(avg_emp_yoy) %>% 
@@ -245,7 +239,8 @@ MSA_median_rent2021_data <- read_csv(here("data", "raw", "2021MSA_medianrent.csv
   separate(col = cbsa,
            into = c("unknown", "cbsa"),
            sep = -5) %>% 
-  mutate(cbsa = as.double(cbsa)) %>% 
+  mutate(cbsa = ifelse(cbsa == 'M6400', "38860", cbsa)) %>% 
+  mutate(cbsa = as.numeric(cbsa)) %>% 
   mutate(median_rent2021 = as.numeric(rent50_0)) %>% 
   select(cbsa, median_rent2021) %>% 
   right_join(potential_MSAs) 
@@ -257,9 +252,10 @@ MSA_median_rent2022_data <- read_csv(here("data", "raw", "2022MSA_median_rent.cs
   separate(col = cbsa,
            into = c("unknown", "cbsa"),
            sep = -5) %>% 
-  mutate(cbsa = as.double(cbsa)) %>% 
+  mutate(cbsa = ifelse(unknown == '38860M', "38860", cbsa)) %>% 
   mutate(median_rent2022 = as.numeric(rent_50_0)) %>% 
   select(cbsa, median_rent2022) %>% 
+  mutate(cbsa = as.numeric(cbsa)) %>% 
   right_join(MSA_median_rent2021_data)
 
 potential_MSAs <- MSA_median_rent2022_data %>% 
@@ -289,17 +285,13 @@ metro_house_prices <- metro_house_cost_data %>%
   select(cbsa, house_price_2021) %>% 
   right_join(potential_MSAs) %>% 
   select(cbsa, MSA, state, pop_percent_change20_21, normalized_pop2021, popestimate2021, median_income, avg_emp_YoY, median_rent2021, median_rent2022, house_price_2021) %>% 
+  mutate(house_price_2021 = ifelse(cbsa == "12260", "284900", house_price_2021)) %>% 
+  mutate(house_price_2021 = ifelse(cbsa == "32580", "259000", house_price_2021))
+
+MSAs <-metro_house_prices %>% 
   filter(popestimate2021 >= 500000)
 ```
 
-```{r house price exploratory, eval = FALSE}
-ggplot(data = metro_house_cost_data, aes(x = log(x2020))) +
-   geom_histogram(bins = 100)
-
-ggplot(data = metro_house_cost_data, aes(sample = log(x2020))) +
-  geom_qq() 
-
-```
 
 The following MSAs were not included in the housing dataset:
 
@@ -310,7 +302,7 @@ The following MSAs were not included in the housing dataset:
 - Lubbock, TX
 - McAllen-Edinburg-Mission, TX
 - Salisbury, MD
-- Savannah, GA
+
 
 ```{r, house price visual, fig.height = 7, fig.align='center', eval = FALSE}
 ggplot(metro_house_prices, aes(x = houseprice_change21_22, y = reorder(MSA, houseprice_change21_22))) +
@@ -326,79 +318,19 @@ ggplot(metro_house_prices, aes(x = houseprice_change21_22, y = reorder(MSA, hous
 
 ```
 
-### Property Taxes
-It was difficult to find property tax information by city that was consistent across cities. Median real estate taxes in dollars are provided by the U.S. Census and data is collected at the MSA level. A metric of property tax and median home prices can be used to normalized.
-
-Dataset: B25103  MORTGAGE STATUS BY MEDIAN REAL ESTATE TAXES PAID (USD) in 2019
-
-Source:[U.S. Census Bureau](https://data.census.gov/cedsci/table?q=property%20tax&g=0100000US%2431000M1&d=ACS%201-Year%20Estimates%20Detailed%20Tables&tid=ACSDT1Y2019.B25103&tp=true)
-
-```{r property taxes data wrangling, eval = FALSE}
-property_tax_data <- read_csv(here("data","raw", "wide_property_tax_data.csv")) 
-
-# create new data frame with tax estimate values
-median_tax_df <- property_tax_data %>% 
-  select(ends_with("estimate")) %>% 
-  slice(2) %>% 
-  stack() %>% # flip data table to be tidy
-  rename(MSA = ind) %>% 
-  mutate(median_tax_USD = as.numeric(values)) %>% 
-  separate(col = MSA,
-           into = c("MSA", "state"),
-           sep = ", ") %>% 
-  separate(col = state,
-           into = c("state"),
-           sep = " ") %>% 
-  select(!values)
-  
-# make data frame with margin of error values
-moe_tax_df <- property_tax_data %>% 
-  select(ends_with("error")) %>% 
-  slice(2) %>% 
-  stack() %>% # flip data table to be tidy
-  rename(MSA = ind) %>% 
-  separate(col = values,
-           into = c("value", "tax_moe_USD"),
-           sep = 1) %>% 
-  mutate(tax_moe_USD = as.numeric(tax_moe_USD)) %>% 
-  separate(col = MSA,
-           into = c("MSA", "state"),
-           sep = ", ") %>% 
-  separate(col = state,
-           into = c("state", "area"),
-           sep = " ") %>% 
-  select(!c(value, area))
-
-MSA_property_tax <- metro_house_prices %>% 
-  full_join(median_tax_df) %>% 
-  left_join(moe_tax_df) %>% 
-  drop_na(cbsa) # drop all MSA rows if NA in cbsa column
-  
-```
-
-```{r property tax visual, fig.height = 7, fig.align='center', eval = FALSE}
-ggplot(MSA_property_tax, aes(x = median_tax_USD, y = reorder(MSA, median_tax_USD))) +
-  geom_errorbarh(aes(xmin = median_tax_USD - tax_moe_USD, xmax = median_tax_USD + tax_moe_USD)) + 
-  geom_point(size = 3, color = "darkgreen") + 
-  theme_minimal(base_size = 12.5) + 
-  labs(title = "Median property tax in 2019", 
-       subtitle = "", 
-       x = "Median Property Tax estimate (in USD)", 
-       y = "") + 
-  scale_x_continuous(labels = label_dollar())
-```
-
-
 
 ### MSA data table
 
 ```{r data table}
 # table seperated by MSAs
-datatable(metro_house_prices, extensions = 'Buttons', options = list(
+datatable(MSAs, extensions = 'Buttons', options = list(
     dom = 'Bfrtip',
     buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
   )
 )
+
+gs4_create("updated_MSAs")
+sheet_write(MSAs, ss = "https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=0", sheet = "MSAs")
 ```
 
 ### City Data Table
@@ -408,9 +340,11 @@ MSAs were split up by cities to collect utility, rent, and landlord data.
 #  split up MSAs into cities to collect utility, rent, and landlord data.
 msa_seperated <- metro_house_prices %>% 
   separate_rows(MSA, sep = "-") %>% 
-  rename(city = MSA)# %>% # seperate MSA cities into their own columns
- # full_join(payroll_data, by = c("MSA" = "area")) %>% 
- # drop_na(pop_percent_change20_21)
+  rename(city = MSA) %>% # seperate MSA cities into their own columns
+ drop_na(city)
+
+gs4_create("updated_MSAs")
+sheet_write(msa_seperated, ss = "https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=0", sheet = "cities")
 
 # table seperated by city
 datatable(msa_seperated, extensions = 'Buttons', options = list(
