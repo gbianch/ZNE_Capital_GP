@@ -241,7 +241,7 @@ MSA_median_rent2021_data <- read_csv(here("data", "raw", "2021MSA_medianrent.csv
            sep = -5) %>% 
   mutate(cbsa = ifelse(cbsa == 'M6400', "38860", cbsa)) %>% 
   mutate(cbsa = as.numeric(cbsa)) %>% 
-  mutate(median_rent2021 = as.numeric(rent50_0)) %>% 
+  mutate(median_rent2021 = as.numeric(rent50_1)) %>% 
   select(cbsa, median_rent2021) %>% 
   right_join(potential_MSAs) 
 
@@ -253,7 +253,7 @@ MSA_median_rent2022_data <- read_csv(here("data", "raw", "2022MSA_median_rent.cs
            into = c("unknown", "cbsa"),
            sep = -5) %>% 
   mutate(cbsa = ifelse(unknown == '38860M', "38860", cbsa)) %>% 
-  mutate(median_rent2022 = as.numeric(rent_50_0)) %>% 
+  mutate(median_rent2022 = as.numeric(rent_50_1)) %>% 
   select(cbsa, median_rent2022) %>% 
   mutate(cbsa = as.numeric(cbsa)) %>% 
   right_join(MSA_median_rent2021_data)
