@@ -176,6 +176,17 @@ avg_emp_yoy <- MSA_employment %>%
   mutate(avg_emp_YoY = round(avg_emp_YoY, digits = 4)) %>% 
   drop_na() 
 
+avg_emp_change <- MSA_employment %>% 
+  group_by(MSA, year) %>% 
+  summarize(avg_employment_rate = mean(employment_rate)) %>% 
+  pivot_wider(names_from = year,
+              values_from = avg_employment_rate,
+              names_prefix = "emp_rate") %>% 
+  mutate(emp_change20_21 = (emp_rate2021 - emp_rate2020) /emp_rate2020 *100) %>% 
+  full_join(avg_emp_yoy) %>% 
+  filter(year == "2021")
+              
+
 
 MSA_emp_income <- income_potential_MSAs %>% 
   full_join(avg_emp_yoy) %>% 
