@@ -47,7 +47,6 @@ compliedMSA_realEstate<- select_MSAs %>%
   mutate(income_to_homeprice = median_income/house_price_2021) %>% 
   # calculate rent to income ratio
   # multiply monthly rent x 12 for annual rent!
-  mutate(avg_rent_to_income = (avg_rent_2021*12)/median_income) %>% 
   mutate(med_rent_to_income = (median_rent2021*12)/median_income)
 
 ```
@@ -66,7 +65,6 @@ n_MSA_realEstate <- compliedMSA_realEstate %>%
   # normalize income to home price
   mutate(n_med_rent_change = (med_rent_change - min(med_rent_change)) / (max(med_rent_change) - min(med_rent_change))) %>% 
   mutate(n_income_to_homeprice = (income_to_homeprice - min(income_to_homeprice)) / (max(income_to_homeprice) - min(income_to_homeprice))) %>% 
-  mutate(n_avg_rent_to_income = (avg_rent_to_income- min(avg_rent_to_income, na.rm = TRUE)) / (max(avg_rent_to_income, na.rm = TRUE) - min(avg_rent_to_income, na.rm = TRUE))) %>% 
   mutate(n_avg_occupancy = (avg_occupancy_21 - min(avg_occupancy_21, na.rm = TRUE)) / (max(avg_occupancy_21, na.rm = TRUE) - min(avg_occupancy_21, na.rm = TRUE))) %>% 
   # normalize rent change
   mutate(n_avg_rent_change = (avg_rent_change - min(avg_rent_change, na.rm = TRUE)) / (max(avg_rent_change, na.rm = TRUE) - min(avg_rent_change, na.rm = TRUE))) 
@@ -77,7 +75,7 @@ n_MSA_realEstate <- compliedMSA_realEstate %>%
 # invert normalized rent to income ratio so lower values (more favorable) have higher scores
 n_MSA_realEstate <- n_MSA_realEstate %>% 
   mutate(n_med_rent_to_income_inverted = 1 - n_med_rent_to_income) %>% 
-  mutate(n_avg_rent_to_income_inverted = 1 - n_avg_rent_to_income)
+  mutate(n_income_to_homeprice_inverted = 1 - n_income_to_homeprice)
 
 ```
 
@@ -89,8 +87,7 @@ real_estate_weights <- c(0.35, 0.20, 0.15, 0.10, 0.10, 0.10)
 #make real_estate_score column
 n_MSA_realEstate <- n_MSA_realEstate %>% 
   select(cbsa, MSA, starts_with("n_"), ) %>% 
-  mutate(real_estate_score = MSA) %>% #this is just a place holder
-  mutate(RE_score_avg_rent = MSA)
+  mutate(real_estate_score = MSA) 
 ```
 
 ```{r}
@@ -103,28 +100,13 @@ for (i in 1:size[1]) {
                   n_MSA_realEstate$n_avg_occupancy[i],
                   n_MSA_realEstate$n_med_rent_change[i],
                   n_MSA_realEstate$n_med_rent_to_income_inverted[i], 
-                  n_MSA_realEstate$n_income_to_homeprice[i]
+                  n_MSA_realEstate$n_income_to_homeprice_inverted[i]
                   )
   n_MSA_realEstate$real_estate_score[i] = weighted.mean(MSA_x_data, real_estate_weights)
 }
 
-
 ```
 
-```{r}
-
-# score using average rent
-for (i in 1:size[1]) {
-  MSA_x_data <- c(n_MSA_realEstate$n_pop_change[i],
-                  n_MSA_realEstate$n_employ_change[i],
-                  n_MSA_realEstate$n_avg_occupancy[i],
-                  n_MSA_realEstate$n_avg_rent_change[i],
-                  n_MSA_realEstate$n_avg_rent_to_income_inverted[i], # compare avg rent and median rent
-                  n_MSA_realEstate$n_income_to_homeprice[i]
-                  )
-  n_MSA_realEstate$RE_score_avg_rent[i] = weighted.mean(MSA_x_data, real_estate_weights)
-}
-```
 
 ```{r}
 # create downloadable data table
