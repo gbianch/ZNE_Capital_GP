@@ -5,7 +5,7 @@ date: '2022-11-14'
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
@@ -20,6 +20,39 @@ real_estate_score_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Ss
 
 landlord_score_data <- read_sheet("https://docs.google.com/spreadsheets/d/1nLpDhM88a3rEBDVK5RZlk2B6QuwVIwvsfE5HeBz0mLo/edit#gid=983090810")
                                   
+
+```
+
+```{r}
+# create table with category scores
+# isolating score from each category data sheet
+real_estate_score <- real_estate_score_data %>% 
+  select(cbsa, real_estate_score)
+
+category_score <- landlord_score_data %>% 
+  select(MSA, cbsa, landlord_score) %>% 
+  inner_join(real_estate_score)
+
+
+```
+
+```{r}
+category_weights <- c(0.4, 0.25, 0.15, 0.10, 0.10)
+```
+
+```{r}
+size <- dim(category_score)
+
+
+for (i in 1:size[1]) {
+  MSA_x_data <- c(category_score$real_estate_score[i],
+                  category_score$financial_score[i],
+                  category_score$landlord_score[i],
+                  category_score$climate_impact_score[i], 
+                  category_score$energy_score[i]
+                  )
+  category_score$total_score[i] = weighted.mean(MSA_x_data, category_weights)
+}
 
 ```
 
