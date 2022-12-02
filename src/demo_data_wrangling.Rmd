@@ -277,6 +277,8 @@ potential_MSAs <- MSA_median_rent2022_data %>%
 ### House Prices
 
 Median housing prices by MSA were obtained from the Association of Realtors for 2021. 
+Copyright ©[2021] NATIONAL ASSOCIATION OF REALTORS®. All rights reserved.  Reprinted with permission.
+
 
 Source: [The National Association of Realtors](https://www.nar.realtor/research-and-statistics/housing-statistics/metropolitan-median-area-prices-and-affordability)
 
