@@ -1,0 +1,118 @@
+---
+title: "Real Estate"
+author: "Grace Bianchi"
+date: '2022-10-21'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(janitor)
+library(googlesheets4)
+library(DT)
+
+
+city_realEstate_data <- read_sheet("https://docs.google.com/spreadsheets/d/10n55Gt0rySN96OGTQ2_8PzeTcX66n26sOlZBiuiAeBU/edit#gid=808954990")
+
+select_MSAs <- read_sheet("https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit?usp=sharing")
+
+anchor_cities <- read_sheet("https://docs.google.com/spreadsheets/d/1leWRliw7cGGQTGIdBJzakjWZ4skQzSh04lFw_LfbtLU/edit#gid=0") %>%  clean_names()
+
+```
+
+```{r}
+# aggregate yardi data into MSAs by cbsa
+city_realEstate_data <- city_realEstate_data %>% 
+  clean_names() %>% 
+  select(!x7) %>% 
+  rename(avg_rent2022 = x2022_rent) %>% 
+  rename(occ_rate2021 = percent_occupancy_2021)
+
+anchor_cities_list <- unique(anchor_cities$city_msa)
+
+anchor_city_data <- city_realEstate_data %>% 
+  filter(city %in% c(anchor_cities_list))
+  
+```
+
+```{r}
+# add MSA_median rent data
+compliedMSA_realEstate<- select_MSAs %>% 
+  left_join(anchor_city_data, by = "cbsa") %>% 
+    # calculate rent change
+  mutate(med_rent_change = (median_rent2022 - median_rent2021)/median_rent2021 * 100) %>% 
+  # calculate income to homeprice
+  mutate(house_price_2021 = as.numeric(house_price_2021)) %>% 
+  mutate(income_to_homeprice = median_income/house_price_2021) %>% 
+  # calculate rent to income ratio
+  # multiply monthly rent x 12 for annual rent!
+  mutate(med_rent_to_income = (median_rent2021*12)/median_income)
+
+```
+
+
+
+```{r}
+# normalize columns into new data table
+n_MSA_realEstate <- compliedMSA_realEstate %>% 
+  # normalize population data
+  mutate(n_pop_change = (pop_percent_change20_21 - min(pop_percent_change20_21))/(max(pop_percent_change20_21)-min(pop_percent_change20_21))) %>%
+  # normalize employment growth
+  mutate(n_employ_change = (avg_emp_YoY - min(avg_emp_YoY)) / (max(avg_emp_YoY) - min(avg_emp_YoY))) %>% 
+  # normalize rent to income
+  mutate(n_med_rent_to_income = (med_rent_to_income- min(med_rent_to_income)) / (max(med_rent_to_income) - min(med_rent_to_income))) %>% 
+  # normalize income to home price
+  mutate(n_med_rent_change = (med_rent_change - min(med_rent_change)) / (max(med_rent_change) - min(med_rent_change))) %>% 
+  mutate(n_income_to_homeprice = (income_to_homeprice - min(income_to_homeprice)) / (max(income_to_homeprice) - min(income_to_homeprice))) %>% 
+  mutate(n_avg_occupancy = (occ_rate2021 - min(occ_rate2021)) / (max(occ_rate2021) - min(occ_rate2021))) 
+
+
+```
+
+```{r}
+# invert normalized rent to income ratio so lower values (more favorable) have higher scores
+n_MSA_realEstate <- n_MSA_realEstate %>% 
+  mutate(n_med_rent_to_income_inverted = 1 - n_med_rent_to_income) %>% 
+  mutate(n_income_to_homeprice_inverted = 1 - n_income_to_homeprice)
+
+```
+
+
+```{r}
+# weights from owen
+real_estate_weights <- c(0.35, 0.20, 0.15, 0.10, 0.10, 0.10)
+
+#make real_estate_score column
+n_MSA_realEstate <- n_MSA_realEstate %>% 
+  select(cbsa, MSA, starts_with("n_"), ) %>% 
+  mutate(real_estate_score = MSA) 
+```
+
+```{r}
+size <- dim(n_MSA_realEstate)
+
+
+for (i in 1:size[1]) {
+  MSA_x_data <- c(n_MSA_realEstate$n_pop_change[i],
+                  n_MSA_realEstate$n_employ_change[i],
+                  n_MSA_realEstate$n_avg_occupancy[i],
+                  n_MSA_realEstate$n_med_rent_change[i],
+                  n_MSA_realEstate$n_med_rent_to_income_inverted[i], 
+                  n_MSA_realEstate$n_income_to_homeprice_inverted[i]
+                  )
+  n_MSA_realEstate$real_estate_score[i] = weighted.mean(MSA_x_data, real_estate_weights)
+}
+
+```
+
+
+```{r}
+#write result to google sheet
+#gs4_create("anchor_real_estate_score")
+sheet_write(n_MSA_realEstate, ss = "https://docs.google.com/spreadsheets/d/1Ssmb7pUd4NFZocVp9C75SRMOV6tAJCCt0TjrCYBB8pY/edit?usp=sharing", sheet = "anchor_realEstate")
+```
+
+
+
