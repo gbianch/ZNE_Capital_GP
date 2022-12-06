@@ -16,15 +16,15 @@ library(DT)
 
 MSA_landlord_data <- read_sheet("https://docs.google.com/spreadsheets/d/1zCePYRyJ5lb1Z5jvCujg17EtwqpxJN1E1_HwJL66uLM/edit#gid=122953884") 
 
-select_MSAs <- read_sheet("https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit?usp=sharing")
+# select_MSAs <- read_sheet("https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit?usp=sharing")
 ```
 
 ```{r}
 #filter by new MSA list
-new_MSA_list <- unique(select_MSAs$cbsa)
-
-MSA_landlord_data <- MSA_landlord_data %>% 
-  filter(cbsa %in% c(new_MSA_list))
+# new_MSA_list <- unique(select_MSAs$cbsa)
+# 
+# MSA_landlord_data <- MSA_landlord_data %>% 
+#   filter(cbsa %in% c(new_MSA_list))
 ```
 
 
@@ -37,15 +37,15 @@ MSA_landlord_data <- MSA_landlord_data %>%
       security_deposit_limit == "1_month_rent" ~ 0.0,
       security_deposit_limit == "2_months_rent" ~ 0.5))
 
-#notice_of_entry_days
-MSA_landlord_data <- MSA_landlord_data %>% 
-  mutate(
-    notice_for_entry_days_num = case_when(
-      notice_for_entry_days == "N" ~ 1.0, 
-      notice_for_entry_days == "0" ~ 1.0,
-      notice_for_entry_days == "0.5" ~ 0.75,
-      notice_for_entry_days == "1" ~ 0.5,
-      notice_for_entry_days == "2" ~ 0.0,))
+# #notice_of_entry_days
+# MSA_landlord_data <- MSA_landlord_data %>% 
+#   mutate(
+#     notice_for_entry_days_num = case_when(
+#       notice_for_entry_days == "N" ~ 1.0, 
+#       notice_for_entry_days == "0" ~ 1.0,
+#       notice_for_entry_days == "0.5" ~ 0.75,
+#       notice_for_entry_days == "1" ~ 0.5,
+#       notice_for_entry_days == "2" ~ 0.0,))
 ```
 
 ```{r}
@@ -69,7 +69,7 @@ MSA_landlord_data <- MSA_landlord_data %>%
 #input landlord weights for each indicator in the following order: eviction notice days, security deposit limit, notice for entry 
 
 #Weights must sum to 1
-landlord_weights <- c(0.9, 0.05, 0.05)
+landlord_weights <- c(0.8, 0.2)
 
 #make landlord_score column
 MSA_landlord_data <- MSA_landlord_data %>% 
@@ -79,8 +79,7 @@ MSA_landlord_data <- MSA_landlord_data %>%
 size <- dim(MSA_landlord_data)
 for (i in 1:size[1]) {
   MSA_x_data <- c(MSA_landlord_data$eviction_notice_days_normalized_inverted[i],
-                  MSA_landlord_data$security_depopsit_limit_num[i],
-                  MSA_landlord_data$notice_for_entry_days_num[i]
+                  MSA_landlord_data$security_depopsit_limit_num[i]
                   )
   MSA_landlord_data$landlord_score[i] = weighted.mean(MSA_x_data, landlord_weights)
 }
