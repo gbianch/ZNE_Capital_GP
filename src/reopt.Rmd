@@ -1,0 +1,33 @@
+---
+title: "reOpt Data"
+author: "Grace Bianchi"
+date: "2023-01-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(janitor)
+library(googlesheets4)
+```
+
+
+```{r}
+# read in data
+reopt_data <- read_sheet("https://docs.google.com/spreadsheets/d/1VROhOTWY4jSeI_zNgFui4ie6QiIz7uzzli8rF72fAyg/edit#gid=0") %>% 
+  clean_names()
+
+
+```
+
+
+```{r}
+Annual Renewable Electricity (%)
+Lifecycle Total tons CO2
+Internal Rate of Return (IRR) (%)
+Lifecycle Costs of Health Emissions ($)
+
+```
+
