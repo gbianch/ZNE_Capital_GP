@@ -26,26 +26,38 @@ reopt_data <- read_sheet("https://docs.google.com/spreadsheets/d/1VROhOTWY4jSeI_
 
 ```{r}
 energy_production_metric <- reopt_data %>% 
-  select(cbsa, city_msa, county, annual_renewable_electricity_percent_of_total) %>% 
+  select(cbsa, city_msa, state, annual_renewable_electricity_percent_of_total) %>% 
   rename(annual_renewable_percent = annual_renewable_electricity_percent_of_total) %>% 
   # normalize data 
-  mutate(normalized_annual_renewable = (annual_renewable_percent - min(annual_renewable_percent))/(max(annual_renewable_percent)-min(annual_renewable_percent)))
+  mutate(normalized_annual_renewable = (annual_renewable_percent - min(annual_renewable_percent))/(max(annual_renewable_percent)-min(annual_renewable_percent))) %>% 
+  select(cbsa, city_msa, state, normalized_annual_renewable)
   
-
 climate_impacts_metric <- reopt_data %>% 
-  select(cbsa, city_msa, county, lifecycle_total_t_co2) %>% 
   # normalize total co2 
-  mutate(normalized_total_co2 = (lifecycle_total_t_co2 - min(lifecycle_total_t_co2)) / (max(lifecycle_total_t_co2) - min(lifecycle_total_t_co2)))
+  mutate(normalized_total_co2 = (lifecycle_total_t_co2 - min(lifecycle_total_t_co2)) / (max(lifecycle_total_t_co2) - min(lifecycle_total_t_co2))) %>% 
+  # invert co2
+  mutate(inverted_n_total_co2 = 1 - normalized_total_co2) %>% 
+  select(cbsa, inverted_n_total_co2)
   
 financial_metric <- reopt_data %>% 
-   select(cbsa, city_msa, county, irr) %>% 
   # normalize IRR
-  mutate(normalized_irr = (irr - min(irr)) / (max(irr) - min(irr)))
+  mutate(normalized_irr = (irr - min(irr)) / (max(irr) - min(irr))) %>% 
+  select(cbsa, normalized_irr) 
 
 health_impact_metric <- reopt_data  %>% 
-   select(cbsa, city_msa, county, lifecycle_costs_of_health_emissions_difference_from_bau) %>% 
   rename(health_emissions_cost = lifecycle_costs_of_health_emissions_difference_from_bau) %>% 
-  mutate(normalized_health_emission_cost = (health_emissions_cost - min(health_emissions_cost)) / (max(health_emissions_cost) - min(health_emissions_cost)))
+  mutate(normalized_health_emission_cost = (health_emissions_cost - min(health_emissions_cost)) / (max(health_emissions_cost) - min(health_emissions_cost))) %>% 
+  # invert 
+  mutate(inverted_n_health_emissions_cost = 1 - normalized_health_emission_cost) %>% 
+   select(cbsa, inverted_n_health_emissions_cost) 
+```
 
+
+```{r}
+# reopt normalized metrics
+reopt_metrics_normalized <- energy_production_metric %>% 
+  left_join(climate_impacts_metric) %>% 
+  left_join(financial_metric) %>% 
+  left_join(health_impact_metric)
 ```
 
