@@ -25,7 +25,7 @@ reopt_data <- read_sheet("https://docs.google.com/spreadsheets/d/1VROhOTWY4jSeI_
 
 
 ```{r}
-annual_renewable_electricity <- reopt_data %>% 
+energy_production_metric <- reopt_data %>% 
   select(cbsa, city_msa, county, annual_renewable_electricity_percent_of_total) %>% 
   rename(annual_renewable_percent = annual_renewable_electricity_percent_of_total) %>% 
   mutate(annual_renewable_percent = annual_renewable_percent*100) %>% 
@@ -33,10 +33,10 @@ annual_renewable_electricity <- reopt_data %>%
   mutate(normalized_annual_renewable = (annual_renewable_percent - min(annual_renewable_percent))/(max(annual_renewable_percent)-min(annual_renewable_percent)))
   
 
-total_Co2_tons <- reopt_data %>% 
+climate_impacts_metric <- reopt_data %>% 
   select(cbsa, city_msa, county, lifecycle_total_t_co2) %>% 
   
-irr_percent <- reopt_data %>% 
+financial_metric <- reopt_data %>% 
    select(cbsa, city_msa, county, irr)
 
 health_emissions_costs <- reopt_data  %>% 
