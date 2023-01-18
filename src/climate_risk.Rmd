@@ -1,0 +1,23 @@
+---
+title: "Climate Risk"
+author: "Julia Bickford"
+date: '2023-01-18'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+library(tidyverse)
+library(janitor)
+```
+```{r}
+#read in National Risk Index (NRI) county data
+
+climate_risk <- read.csv(here("data", "raw", "NRI_Table_Counties.csv")) %>% 
+  clean_names()
+
+#filter data by county 
+
+```
+
