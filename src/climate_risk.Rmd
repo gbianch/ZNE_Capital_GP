@@ -7,17 +7,21 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(here)
+
 library(tidyverse)
 library(janitor)
+library(googlesheets4)
 ```
+
 ```{r}
+# read in reopt data (for STCOFIPS codes)
+reopt_data <- read_sheet("https://docs.google.com/spreadsheets/d/1VROhOTWY4jSeI_zNgFui4ie6QiIz7uzzli8rF72fAyg/edit#gid=0") %>% 
+  clean_names() %>% 
+  drop_na()
+
 #read in National Risk Index (NRI) county data
 
-climate_risk <- read.csv(here("data", "raw", "NRI_Table_Counties.csv")) %>% 
-  clean_names()
-
-#filter data by county 
+climate_risk <- read_sheet("https://docs.google.com/spreadsheets/d/1J8-PrtmSASmcbLp7Z2TDYsqx1_sSM6naNYPzyMeElGM/edit?usp=sharing")
 
 ```
 
