@@ -61,3 +61,7 @@ reopt_metrics_normalized <- energy_production_metric %>%
   left_join(health_impact_metric)
 ```
 
+```{r}
+sheet_write(reopt_metrics_normalized, ss = "https://docs.google.com/spreadsheets/d/1VROhOTWY4jSeI_zNgFui4ie6QiIz7uzzli8rF72fAyg/edit#gid=498103540", sheet = "normalized_reopt_metrics")
+```
+
