@@ -25,3 +25,55 @@ climate_risk <- read_sheet("https://docs.google.com/spreadsheets/d/1J8-PrtmSASmc
 
 ```
 
+```{r}
+#pull stcofips numbers for anchor cities
+anchor_stcofips <- reopt_data %>% pull(stcofips_5_digit)
+```
+
+```{r}
+#filter NRI data to only include anchor cities
+anchor_climate_risk <- climate_risk %>% filter(STCOFIPS %in% anchor_stcofips)
+```
+
+```{r}
+#select stcopfips number and overall risk score from NRI data 
+anchor_climate_risk_score <- anchor_climate_risk %>% select(STCOFIPS, RISK_SCORE)
+```
+
+```{r}
+#select stcofips number and cbsa number from from reopt anchor city data
+reopt_data_cbsa_stcofips <- reopt_data %>% select(cbsa, stcofips_5_digit) 
+
+#rename stcofips col to merge data tables by stcofips number
+reopt_data_cbsa_stcofips <- reopt_data_cbsa_stcofips %>% rename("STCOFIPS" =  "stcofips_5_digit")
+```
+
+```{r}
+#merge data to create dable with: CBSA, stcofips, and risk score
+climate_risk_cbsa_stcofips <- merge(reopt_data_cbsa_stcofips, anchor_climate_risk_score, by="STCOFIPS")
+```
+
+```{r}
+#normalize climate risk scores
+climate_risk_cbsa_stcofips <- climate_risk_cbsa_stcofips %>% 
+  # normalize climate risk
+  mutate(normalized_climate_risk = (RISK_SCORE - min(RISK_SCORE)) / (max(RISK_SCORE) - min(RISK_SCORE)))
+
+#invert normalized scores so that places with less climate risk have a better score
+climate_risk_cbsa_stcofips <- climate_risk_cbsa_stcofips %>% 
+  # normalize climate risk
+  mutate(normalized_inverted_climate_risk = 1-normalized_climate_risk)
+
+```
+
+
+
+
+
+```{r}
+#write result to google sheet
+sheet_write(climate_risk_cbsa_stcofips, ss = "https://docs.google.com/spreadsheets/d/1HZCeNGf61RJ9GJs3cLJcl9aNpvmPMBF1Yoss2fytltc/edit?usp=sharing")
+```
+
+
+
