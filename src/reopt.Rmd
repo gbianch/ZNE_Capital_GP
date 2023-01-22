@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(janitor)
 library(googlesheets4)
+library(ggplot2)
 ```
 
 
@@ -63,5 +64,51 @@ reopt_metrics_normalized <- energy_production_metric %>%
 
 ```{r}
 sheet_write(reopt_metrics_normalized, ss = "https://docs.google.com/spreadsheets/d/1VROhOTWY4jSeI_zNgFui4ie6QiIz7uzzli8rF72fAyg/edit#gid=498103540", sheet = "normalized_reopt_metrics")
+```
+
+
+```{r}
+# mean ("mean_metric"), 95th percentile ("perc_metric"), and distribution for sensitivity analysis
+
+#energy production 
+mean_energy_production <- mean(energy_production_metric$normalized_annual_renewable)
+mean_energy_production
+
+perc_energy_production <- quantile(energy_production_metric$normalized_annual_renewable, probs = 0.95)
+perc_energy_production
+
+energy_distribution <- density(energy_production_metric$normalized_annual_renewable)
+plot(energy_distribution)
+
+
+#climate impacts
+mean_total_co2 <- mean(climate_impacts_metric$inverted_n_total_co2)
+mean_total_co2
+
+perc_total_co2 <- quantile(climate_impacts_metric$inverted_n_total_co2, probs = 0.95)
+perc_total_co2
+
+climate_impacts_distribution <- density(climate_impacts_metric$inverted_n_total_co2)
+plot(climate_impacts_distribution)
+
+#financial
+mean_irr <- mean(financial_metric$normalized_irr)
+mean_irr
+
+perc_irr <- quantile(financial_metric$normalized_irr, probs = 0.95)
+perc_irr
+
+irr_distribution <- density(financial_metric$normalized_irr)
+plot(irr_distribution)
+
+#health impacts
+mean_health_emissions <- mean(health_impact_metric$inverted_n_health_emissions_cost)
+mean_health_emissions
+
+perc_health <- quantile(health_impact_metric$inverted_n_health_emissions_cost, probs = 0.95)
+perc_health
+
+health_distribution <- density(health_impact_metric$inverted_n_health_emissions_cost)
+plot(health_distribution)
 ```
 

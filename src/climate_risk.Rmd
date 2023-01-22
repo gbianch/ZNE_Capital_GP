@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(janitor)
 library(googlesheets4)
+library(ggplot2)
 ```
 
 ```{r}
@@ -66,6 +67,18 @@ climate_risk_cbsa_stcofips <- climate_risk_cbsa_stcofips %>%
 
 ```
 
+```{r}
+#mean ("mean_metric"), 95th percentile ("perc_metric"), and distribution for sensitivity analysis
+
+mean_climate_risk <- mean(climate_risk_cbsa_stcofips$normalized_inverted_climate_risk)
+mean_climate_risk
+
+perc_climate_risk <- quantile(climate_risk_cbsa_stcofips$normalized_inverted_climate_risk, probs = 0.95)
+perc_climate_risk
+
+climate_risk_distribution <- density(climate_risk_cbsa_stcofips$normalized_inverted_climate_risk)
+plot(climate_risk_distribution)
+```
 
 
 
