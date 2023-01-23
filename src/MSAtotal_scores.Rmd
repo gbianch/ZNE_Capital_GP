@@ -16,43 +16,83 @@ library(googlesheets4)
 
 ```{r}
 # read in the data
-real_estate_score_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Ssmb7pUd4NFZocVp9C75SRMOV6tAJCCt0TjrCYBB8pY/edit#gid=2007178520")
+real_estate_score_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Ssmb7pUd4NFZocVp9C75SRMOV6tAJCCt0TjrCYBB8pY/edit#gid=1038418521") %>% 
+  select(cbsa, real_estate_score)
 
-landlord_score_data <- read_sheet("https://docs.google.com/spreadsheets/d/1nLpDhM88a3rEBDVK5RZlk2B6QuwVIwvsfE5HeBz0mLo/edit#gid=983090810")
+rental_policy_score_data <- read_sheet("https://docs.google.com/spreadsheets/d/1nLpDhM88a3rEBDVK5RZlk2B6QuwVIwvsfE5HeBz0mLo/edit#gid=983090810") %>% 
+  select(cbsa, landlord_score)
+
+reopt_data <- read_sheet("https://docs.google.com/spreadsheets/d/1tPqpmS8JOeRyunEmSyFYPYwshKDGx54Z-MISgYO3wZE/edit#gid=1874679054") %>% 
+  select(cbsa, city_msa, state, normalized_irr, inverted_n_total_co2, inverted_n_health_emissions_cost, normalized_annual_renewable)
+
+climate_risk_data <- read_sheet("https://docs.google.com/spreadsheets/d/1HZCeNGf61RJ9GJs3cLJcl9aNpvmPMBF1Yoss2fytltc/edit#gid=2045475301") %>% 
+  select(cbsa, normalized_inverted_climate_risk)
+
                                   
 
 ```
 
+
 ```{r}
-# create table with category scores
-# isolating score from each category data sheet
-real_estate_score <- real_estate_score_data %>% 
-  select(cbsa, real_estate_score)
-
-category_score <- landlord_score_data %>% 
-  select(MSA, cbsa, landlord_score) %>% 
-  inner_join(real_estate_score)
-
-
+criteria_all <- real_estate_score_data %>% 
+  inner_join(rental_policy_score_data)  %>% 
+  inner_join(reopt_data) %>% 
+  inner_join(climate_risk_data)
 ```
 
 ```{r}
-category_weights <- c(0.4, 0.25, 0.15, 0.10, 0.10)
-```
+# weight criteria for Owen
+criteria_weights_owen <- c(0.37, 0.12, 0.22, 0.07, 0.0, 0.07, 0.15)
 
-```{r}
-size <- dim(category_score)
+#make landlord_score column
+criteria_all <- criteria_all %>% 
+  mutate(total_score_owen = cbsa, #this is just a place holder
+         real_estate_score = as.numeric(real_estate_score),
+         landlord_score = as.numeric(landlord_score)
+  )
 
-
+size <- dim(criteria_all)
 for (i in 1:size[1]) {
-  MSA_x_data <- c(category_score$real_estate_score[i],
-                  category_score$financial_score[i],
-                  category_score$landlord_score[i],
-                  category_score$climate_impact_score[i], 
-                  category_score$energy_score[i]
+  cbsa_data <- c(criteria_all$real_estate_score[i],
+                criteria_all$landlord_score[i],
+                 criteria_all$normalized_irr[i],
+                 criteria_all$inverted_n_total_co2[i],
+                criteria_all$inverted_n_health_emissions_cost[i],
+                criteria_all$normalized_annual_renewable[i],
+                criteria_all$normalized_inverted_climate_risk[i]
                   )
-  category_score$total_score[i] = weighted.mean(MSA_x_data, category_weights)
+  criteria_all$total_score_owen[i] = weighted.mean(cbsa_data, criteria_weights_owen)
 }
 
+```
+
+```{r}
+# weight criteria for students
+criteria_weights_students <- c(0.21, 0.0, 0.12, 0.17, 0.16, 0.17, 0.17)
+
+#make landlord_score column
+criteria_all <- criteria_all %>% 
+  mutate(total_score_students = cbsa, #this is just a place holder
+         real_estate_score = as.numeric(real_estate_score),
+         landlord_score = as.numeric(landlord_score)
+  )
+
+size <- dim(criteria_all)
+for (i in 1:size[1]) {
+  cbsa_data <- c(criteria_all$real_estate_score[i],
+                criteria_all$landlord_score[i],
+                 criteria_all$normalized_irr[i],
+                 criteria_all$inverted_n_total_co2[i],
+                criteria_all$inverted_n_health_emissions_cost[i],
+                criteria_all$normalized_annual_renewable[i],
+                criteria_all$normalized_inverted_climate_risk[i]
+                  )
+  criteria_all$total_score_students[i] = weighted.mean(cbsa_data, criteria_weights_students)
+}
+
+```
+
+```{r}
+sheet_write(criteria_all, ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0")
 ```
 
