@@ -13,6 +13,7 @@ library(janitor)
 library(tidyverse)
 library(kableExtra)
 library(DT)
+library(ggplot2)
 
 MSA_landlord_data <- read_sheet("https://docs.google.com/spreadsheets/d/1zCePYRyJ5lb1Z5jvCujg17EtwqpxJN1E1_HwJL66uLM/edit#gid=122953884") 
 
@@ -106,6 +107,30 @@ datatable(MSA_landlord_data, extensions = 'Buttons', options = list(
 sheet_write(MSA_landlord_data, ss = "https://docs.google.com/spreadsheets/d/1nLpDhM88a3rEBDVK5RZlk2B6QuwVIwvsfE5HeBz0mLo/edit?usp=sharing", sheet = "MSA_landlord_data")
 ```
 
+```{r}
+# mean ("mean_metric"), 95th percentile ("perc_metric"), and distribution for sensitivity analysis
+
+#Eviction Notice (normalized, inverted)
+mean_eviction <- mean(MSA_landlord_data$eviction_notice_days_normalized_inverted)
+mean_eviction
+
+perc_eviction <- quantile(MSA_landlord_data$eviction_notice_days_normalized_inverted, probs = 0.95)
+perc_eviction
+
+eviction_distribution <- density(MSA_landlord_data$eviction_notice_days_normalized_inverted)
+plot(eviction_distribution)
+
+#Security Deposit Limit
+mean_deposit <- mean(MSA_landlord_data$security_depopsit_limit_num)
+mean_deposit
+
+perc_deposit <- quantile(MSA_landlord_data$security_depopsit_limit_num, probs = 0.95)
+perc_deposit
+
+deposit_distribution <- density(MSA_landlord_data$security_depopsit_limit_num)
+plot(deposit_distribution)
+
+```
 
 
 
