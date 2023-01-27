@@ -11,17 +11,35 @@ knitr::opts_chunk$set(echo = TRUE)
 library(googlesheets4)
 library(tidyverse)
 library(janitor)
+library(ggplot2)
 
 ```
 
 
 ```{r}
-total_scores_data <- read_sheet("https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=1307699202")
+total_score_data <- read_sheet("https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=1307699202") %>% 
+  rename(financial_score = normalized_irr,
+         climate_impact = inverted_n_total_co2,
+         health_impact = inverted_n_health_emissions_cost,
+         energy_production = normalized_annual_renewable,
+         climate_risk = normalized_inverted_climate_risk)
 
 real_estate_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Ssmb7pUd4NFZocVp9C75SRMOV6tAJCCt0TjrCYBB8pY/edit#gid=1038418521")
 
 rental_policy_data <- read_sheet("https://docs.google.com/spreadsheets/d/1nLpDhM88a3rEBDVK5RZlk2B6QuwVIwvsfE5HeBz0mLo/edit#gid=983090810")
 
 climate_risk_data <- read_sheet("https://docs.google.com/spreadsheets/d/1HZCeNGf61RJ9GJs3cLJcl9aNpvmPMBF1Yoss2fytltc/edit")
+```
+
+
+```{r}
+score_tidy <- total_score_data %>% 
+  
+```
+
+```{r}
+
+ggplot(data = total_score_data, aes(y = city_msa, x = total_score_owen)) + 
+    geom_bar(position="stack", stat="identity")
 ```
 
