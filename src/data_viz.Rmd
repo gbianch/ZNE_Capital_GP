@@ -21,7 +21,7 @@ total_score_data <- read_sheet("https://docs.google.com/spreadsheets/d/1yqjhJvXU
   rename(financial_score = normalized_irr,
          climate_impact = inverted_n_total_co2,
          health_impact = inverted_n_health_emissions_cost,
-         energy_production = normalized_annual_renewable,
+         electricity = normalized_annual_renewable,
          climate_risk = normalized_inverted_climate_risk)
 
 real_estate_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Ssmb7pUd4NFZocVp9C75SRMOV6tAJCCt0TjrCYBB8pY/edit#gid=1038418521")
@@ -34,12 +34,19 @@ climate_risk_data <- read_sheet("https://docs.google.com/spreadsheets/d/1HZCeNGf
 
 ```{r}
 score_tidy <- total_score_data %>% 
+  pivot_longer(cols = c(real_estate_score, landlord_score, financial_score:climate_risk),
+               names_to = "criteria",
+               values_to = "criteria_score") %>% 
+  filter(city_msa != "Portland") %>% 
+  group_by(city_msa)
   
 ```
 
 ```{r}
+ggplot(data = score_tidy, aes(y = city_msa, x = total_score_owen, fill = criteria)) + 
+    geom_bar()
 
-ggplot(data = total_score_data, aes(y = city_msa, x = total_score_owen)) + 
-    geom_bar(position="stack", stat="identity")
+ggplot(data = score_tidy, aes(y = city_msa, x = total_score_owen, fill = criteria)) + 
+    geom_col(position="stacked")
 ```
 
