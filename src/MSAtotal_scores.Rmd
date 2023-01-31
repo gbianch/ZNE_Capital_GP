@@ -170,7 +170,29 @@ for (i in 1:size[1]) {
 }
 ```
 
+```{r climate risk 35 and Jan 31 weights from owen}
 
+weights_climate35_owen <- c(0.25, 0.1, 0.15, 0.075, 0.0, 0.075, 0.35)
+
+  
+#make landlord_score column
+criteria_all <- criteria_all %>% 
+  mutate(score_climate35_owen = cbsa)#this is just a place holder
+
+
+size <- dim(criteria_all)
+for (i in 1:size[1]) {
+  cbsa_data <- c(criteria_all$real_estate_score[i],
+                criteria_all$landlord_score[i],
+                 criteria_all$normalized_irr[i],
+                 criteria_all$inverted_n_total_co2[i],
+                criteria_all$inverted_n_health_emissions_cost[i],
+                criteria_all$normalized_annual_renewable[i],
+                criteria_all$normalized_inverted_climate_risk[i]
+                  )
+  criteria_all$score_climate35_owen[i] = weighted.mean(cbsa_data, weights_climate35_owen) 
+}
+```
 
 ```{r rename columns and output to google sheet}
 criteria_all <- criteria_all %>% 
