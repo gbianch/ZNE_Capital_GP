@@ -145,15 +145,16 @@ for (i in 1:size[1]) {
 }
 ```
 
+
 ```{r climate risk 50 and proportional weights for others}
+
 weights_climate50_prop <- c(0.18, 0.07, 0.11, 0.07, 0.0, 0.07, 0.50)
 
+  
 #make landlord_score column
 criteria_all <- criteria_all %>% 
-  mutate(score_climate50_prop = cbsa, #this is just a place holder
-         real_estate_score = as.numeric(real_estate_score),
-         landlord_score = as.numeric(landlord_score)
-  )
+  mutate(score_climate50_prop = cbsa)#this is just a place holder
+
 
 size <- dim(criteria_all)
 for (i in 1:size[1]) {
@@ -165,12 +166,47 @@ for (i in 1:size[1]) {
                 criteria_all$normalized_annual_renewable[i],
                 criteria_all$normalized_inverted_climate_risk[i]
                   )
-  criteria_all$score_climate50_prop[i] = weighted.mean(cbsa_data, weights_climate50_prop)
+  criteria_all$score_climate50_prop[i] = weighted.mean(cbsa_data, weights_climate50_prop) 
 }
 ```
 
 
-```{r}
+
+```{r rename columns and output to google sheet}
+criteria_all <- criteria_all %>% 
+  rename(financial_score = normalized_irr,
+         climate_impact = inverted_n_total_co2,
+         health_impact = inverted_n_health_emissions_cost,
+         electricity = normalized_annual_renewable,
+         climate_risk = normalized_inverted_climate_risk) 
+
 sheet_write(criteria_all, ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0")
+```
+
+```{r}
+column_order <- c("real_estate_weighted", "rental_weighted", "financial_weighted", "electricity_weighted", "climate_impact_weighted", "climate_risk_weighted", "health_weighted", "cbsa", "city_msa", "state")
+
+weighted_criteria <- criteria_all %>% 
+  rename(real_estate_weighted = real_estate_score,
+        rental_weighted = landlord_score,
+        financial_weighted = normalized_irr,
+        electricity_weighted = normalized_annual_renewable,
+        climate_impact_weighted = inverted_n_total_co2,
+        climate_risk_weighted = normalized_inverted_climate_risk,
+        health_weighted = inverted_n_health_emissions_cost)
+  
+weighted_criteria <- weighted_criteria[, column_order]
+
+```
+
+```{r data viz}
+
+score_tidy <- criteria_all %>% 
+  pivot_longer(cols = c(real_estate_score, landlord_score, financial_score:climate_risk),
+               names_to = "criteria",
+               values_to = "criteria_score") %>% 
+  filter(city_msa != "Portland") %>% 
+  group_by(city_msa)
+
 ```
 
