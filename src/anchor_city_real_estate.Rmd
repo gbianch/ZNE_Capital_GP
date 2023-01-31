@@ -12,6 +12,7 @@ library(tidyverse)
 library(janitor)
 library(googlesheets4)
 library(DT)
+library(MCDA)
 
 
 city_realEstate_data <- read_sheet("https://docs.google.com/spreadsheets/d/10n55Gt0rySN96OGTQ2_8PzeTcX66n26sOlZBiuiAeBU/edit#gid=808954990")
@@ -30,7 +31,7 @@ city_realEstate_data <- city_realEstate_data %>%
   rename(avg_rent2022 = x2022_rent) %>% 
   rename(occ_rate2021 = percent_occupancy_2021)
 
-anchor_cities_list <- unique(anchor_cities$city_msa)
+anchor_cities_list <- unique(anchor_cities$anchor_city)
 
 anchor_city_data <- city_realEstate_data %>% 
   filter(city %in% c(anchor_cities_list))
@@ -66,7 +67,7 @@ n_MSA_realEstate <- compliedMSA_realEstate %>%
   # normalize income to home price
   mutate(n_med_rent_change = (med_rent_change - min(med_rent_change)) / (max(med_rent_change) - min(med_rent_change))) %>% 
   mutate(n_income_to_homeprice = (income_to_homeprice - min(income_to_homeprice)) / (max(income_to_homeprice) - min(income_to_homeprice))) %>% 
-  mutate(n_avg_occupancy = (occ_rate2021 - min(occ_rate2021)) / (max(occ_rate2021) - min(occ_rate2021))) 
+  mutate(n_avg_occupancy = (occ_rate2021 - min(occ_rate2021)) / (max(occ_rate2021) - min(occ_rate2021)), na.rm = FALSE) 
 
 
 ```
@@ -102,11 +103,27 @@ for (i in 1:size[1]) {
                   n_MSA_realEstate$n_med_rent_to_income_inverted[i], 
                   n_MSA_realEstate$n_income_to_homeprice_inverted[i]
                   )
-  n_MSA_realEstate$real_estate_score[i] = weighted.mean(MSA_x_data, real_estate_weights)
+  n_MSA_realEstate$real_estate_score[i] = sum(MSA_x_data * real_estate_weights)
 }
 
 ```
 
+```{r}
+
+weighted_table <-n_MSA_realEstate %>% 
+  mutate(weighted_pop_change = 0.35*n_pop_change,
+                  weighted_emp_change = 0.20*n_employ_change,
+                  weighted_occ = 0.15 * n_avg_occupancy,
+                  weighted_rent_change = 0.10*n_med_rent_change,
+                  weighted_rent_income = 0.10 * n_med_rent_to_income_inverted, 
+                  weighted_income_homeprice = 0.10 * n_income_to_homeprice_inverted) %>% 
+  mutate(real_estate_score = weighted_pop_change + weighted_emp_change + weighted_occ + weighted_rent_change + weighted_rent_income + weighted_income_homeprice)
+
+
+
+  
+  
+```
 
 ```{r}
 #write result to google sheet
