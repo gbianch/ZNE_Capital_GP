@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, message=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 library(tidyverse)
 library(janitor)
@@ -28,16 +28,21 @@ reopt_data <- read_sheet("https://docs.google.com/spreadsheets/d/1tPqpmS8JOeRyun
 climate_risk_data <- read_sheet("https://docs.google.com/spreadsheets/d/1HZCeNGf61RJ9GJs3cLJcl9aNpvmPMBF1Yoss2fytltc/edit#gid=2045475301") %>% 
   select(cbsa, normalized_inverted_climate_risk)
 
-                                  
-
 ```
 
 
-```{r}
+```{r read in data}
 criteria_all <- real_estate_score_data %>% 
   inner_join(rental_policy_score_data)  %>% 
   inner_join(reopt_data) %>% 
-  inner_join(climate_risk_data)
+  inner_join(climate_risk_data) # combine all criteria scores into one dataframe
+
+# reorder columns
+col_order <-c("cbsa", "city_msa", "state", "real_estate_score", "landlord_score", "normalized_annual_renewable", "normalized_irr", "inverted_n_total_co2", "normalized_inverted_climate_risk", "inverted_n_health_emissions_cost")
+
+criteria_all <- criteria_all[, col_order]
+
+
 ```
 
 
@@ -73,10 +78,8 @@ criteria_weights_students <- c(0.21, 0.0, 0.12, 0.17, 0.16, 0.17, 0.17)
 
 #make landlord_score column
 criteria_all <- criteria_all %>% 
-  mutate(total_score_students = cbsa, #this is just a place holder
-         real_estate_score = as.numeric(real_estate_score),
-         landlord_score = as.numeric(landlord_score)
-  )
+  mutate(total_score_students = cbsa) #this is just a place holder
+  
 
 size <- dim(criteria_all)
 for (i in 1:size[1]) {
@@ -100,10 +103,7 @@ weights_climate50 <- c(0.1, 0.1, 0.1, 0.1, 0.0, 0.1, 0.50)
 
 #make landlord_score column
 criteria_all <- criteria_all %>% 
-  mutate(score_climate50 = cbsa, #this is just a place holder
-         real_estate_score = as.numeric(real_estate_score),
-         landlord_score = as.numeric(landlord_score)
-  )
+  mutate(score_climate50 = cbsa) #this is just a place holder
 
 size <- dim(criteria_all)
 for (i in 1:size[1]) {
@@ -126,10 +126,8 @@ weights_climate40 <- c(0.15, 0.1, 0.15, 0.1, 0.0, 0.1, 0.40)
 
 #make landlord_score column
 criteria_all <- criteria_all %>% 
-  mutate(score_climate40 = cbsa, #this is just a place holder
-         real_estate_score = as.numeric(real_estate_score),
-         landlord_score = as.numeric(landlord_score)
-  )
+  mutate(score_climate40 = cbsa) #this is just a place holder
+  
 
 size <- dim(criteria_all)
 for (i in 1:size[1]) {
@@ -195,31 +193,19 @@ for (i in 1:size[1]) {
 ```
 
 ```{r rename columns and output to google sheet}
+
 criteria_all <- criteria_all %>% 
   rename(financial_score = normalized_irr,
          climate_impact = inverted_n_total_co2,
          health_impact = inverted_n_health_emissions_cost,
          electricity = normalized_annual_renewable,
-         climate_risk = normalized_inverted_climate_risk) 
+         climate_risk = normalized_inverted_climate_risk) %>% 
+  mutate_if(is.numeric, ~round(., 5))
 
-sheet_write(criteria_all, ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0")
+
+sheet_write(criteria_all, ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "criteria_all")
 ```
 
-```{r}
-column_order <- c("real_estate_weighted", "rental_weighted", "financial_weighted", "electricity_weighted", "climate_impact_weighted", "climate_risk_weighted", "health_weighted", "cbsa", "city_msa", "state")
-
-weighted_criteria <- criteria_all %>% 
-  rename(real_estate_weighted = real_estate_score,
-        rental_weighted = landlord_score,
-        financial_weighted = normalized_irr,
-        electricity_weighted = normalized_annual_renewable,
-        climate_impact_weighted = inverted_n_total_co2,
-        climate_risk_weighted = normalized_inverted_climate_risk,
-        health_weighted = inverted_n_health_emissions_cost)
-  
-weighted_criteria <- weighted_criteria[, column_order]
-
-```
 
 ```{r data viz}
 
@@ -230,5 +216,10 @@ score_tidy <- criteria_all %>%
   filter(city_msa != "Portland") %>% 
   group_by(city_msa)
 
+
+ggplot(data = score_tidy, aes(y = city_msa, x = total_score_owen, fill = criteria)) + 
+    geom_col()
+  
 ```
+
 
