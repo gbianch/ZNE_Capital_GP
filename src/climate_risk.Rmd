@@ -37,8 +37,9 @@ anchor_climate_risk <- climate_risk %>% filter(STCOFIPS %in% anchor_stcofips)
 ```
 
 ```{r}
-#select stcopfips number and overall risk score from NRI data 
-anchor_climate_risk_score <- anchor_climate_risk %>% select(STCOFIPS, RISK_SCORE)
+#select stcopfips number and overall risk score and EAL score from NRI data 
+climate_risk_score <- anchor_climate_risk %>% select(STCOFIPS, RISK_SCORE, EAL_SCORE)
+
 ```
 
 ```{r}
@@ -51,32 +52,32 @@ reopt_data_cbsa_stcofips <- reopt_data_cbsa_stcofips %>% rename("STCOFIPS" =  "s
 
 ```{r}
 #merge data to create dable with: CBSA, stcofips, and risk score
-climate_risk_cbsa_stcofips <- merge(reopt_data_cbsa_stcofips, anchor_climate_risk_score, by="STCOFIPS")
+climate_risk_cbsa_stcofips <- merge(reopt_data_cbsa_stcofips, climate_risk_score, by="STCOFIPS")
 ```
 
 ```{r}
 #normalize climate risk scores
-climate_risk_cbsa_stcofips <- climate_risk_cbsa_stcofips %>% 
+climate_risk_EAL <- climate_risk_cbsa_stcofips %>% 
   # normalize climate risk
-  mutate(normalized_climate_risk = (RISK_SCORE - min(RISK_SCORE)) / (max(RISK_SCORE) - min(RISK_SCORE)))
+  mutate(normalized_climate_risk = (RISK_SCORE - min(RISK_SCORE)) / (max(RISK_SCORE) - min(RISK_SCORE)),
+         normalized_eal = (EAL_SCORE - min(EAL_SCORE)) / (max(EAL_SCORE) - min(EAL_SCORE)), #normalize EAL score
+         #invert normalized scores so that places with less climate risk have a better score
+        normalized_inverted_climate_risk = 1-normalized_climate_risk,
+        inverted_n_eal_score = 1 - normalized_eal)
 
-#invert normalized scores so that places with less climate risk have a better score
-climate_risk_cbsa_stcofips <- climate_risk_cbsa_stcofips %>% 
-  # normalize climate risk
-  mutate(normalized_inverted_climate_risk = 1-normalized_climate_risk)
 
 ```
 
 ```{r}
 #mean ("mean_metric"), 95th percentile ("perc_metric"), and distribution for sensitivity analysis
 
-mean_climate_risk <- mean(climate_risk_cbsa_stcofips$normalized_inverted_climate_risk)
+mean_climate_risk <- mean(climate_risk_EAL$normalized_inverted_climate_risk)
 mean_climate_risk
 
-perc_climate_risk <- quantile(climate_risk_cbsa_stcofips$normalized_inverted_climate_risk, probs = 0.95)
+perc_climate_risk <- quantile(climate_risk_EAL$normalized_inverted_climate_risk, probs = 0.95)
 perc_climate_risk
 
-climate_risk_distribution <- density(climate_risk_cbsa_stcofips$normalized_inverted_climate_risk)
+climate_risk_distribution <- density(climate_risk_EAL$normalized_inverted_climate_risk)
 plot(climate_risk_distribution)
 ```
 
@@ -85,7 +86,7 @@ plot(climate_risk_distribution)
 
 ```{r}
 #write result to google sheet
-sheet_write(climate_risk_cbsa_stcofips, ss = "https://docs.google.com/spreadsheets/d/1HZCeNGf61RJ9GJs3cLJcl9aNpvmPMBF1Yoss2fytltc/edit?usp=sharing")
+sheet_write(climate_risk_EAL, ss = "https://docs.google.com/spreadsheets/d/1HZCeNGf61RJ9GJs3cLJcl9aNpvmPMBF1Yoss2fytltc/edit?usp=sharing", sheet = "climate_risk+EAL")
 ```
 
 
