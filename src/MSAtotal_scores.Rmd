@@ -25,8 +25,8 @@ rental_policy_score_data <- read_sheet("https://docs.google.com/spreadsheets/d/1
 reopt_data <- read_sheet("https://docs.google.com/spreadsheets/d/1tPqpmS8JOeRyunEmSyFYPYwshKDGx54Z-MISgYO3wZE/edit#gid=1874679054") %>% 
   select(cbsa, city_msa, state, normalized_irr, inverted_n_total_co2, inverted_n_health_emissions_cost, normalized_annual_renewable)
 
-climate_risk_data <- read_sheet("https://docs.google.com/spreadsheets/d/1HZCeNGf61RJ9GJs3cLJcl9aNpvmPMBF1Yoss2fytltc/edit#gid=2045475301") %>% 
-  select(cbsa, normalized_inverted_climate_risk)
+climate_risk_data <- read_sheet("https://docs.google.com/spreadsheets/d/1HZCeNGf61RJ9GJs3cLJcl9aNpvmPMBF1Yoss2fytltc/edit#gid=2045475301", sheet = "climate_risk+EAL") %>% 
+  select(cbsa, normalized_inverted_climate_risk, inverted_n_eal_score)
 
 ```
 
@@ -38,7 +38,7 @@ criteria_all <- real_estate_score_data %>%
   inner_join(climate_risk_data) # combine all criteria scores into one dataframe
 
 # reorder columns
-col_order <-c("cbsa", "city_msa", "state", "real_estate_score", "landlord_score", "normalized_annual_renewable", "normalized_irr", "inverted_n_total_co2", "normalized_inverted_climate_risk", "inverted_n_health_emissions_cost")
+col_order <-c("cbsa", "city_msa", "state", "real_estate_score", "landlord_score", "normalized_annual_renewable", "normalized_irr", "inverted_n_total_co2", "normalized_inverted_climate_risk", "inverted_n_eal_score", "inverted_n_health_emissions_cost")
 
 criteria_all <- criteria_all[, col_order]
 
@@ -54,7 +54,8 @@ criteria_weights_owen <- c(0.37, 0.12, 0.22, 0.07, 0.0, 0.07, 0.15)
 criteria_all <- criteria_all %>% 
   mutate(total_score_owen = cbsa, #this is just a place holder
          real_estate_score = as.numeric(real_estate_score),
-         landlord_score = as.numeric(landlord_score)
+         landlord_score = as.numeric(landlord_score),
+         score_og_weights_EAL = cbsa
   )
 
 size <- dim(criteria_all)
@@ -70,7 +71,22 @@ for (i in 1:size[1]) {
   criteria_all$total_score_owen[i] = weighted.mean(cbsa_data, criteria_weights_owen)
 }
 
+##### original weights with EAL score
+
+for (i in 1:size[1]) {
+  cbsa_data <- c(criteria_all$real_estate_score[i],
+                criteria_all$landlord_score[i],
+                 criteria_all$normalized_irr[i],
+                 criteria_all$inverted_n_total_co2[i],
+                criteria_all$inverted_n_health_emissions_cost[i],
+                criteria_all$normalized_annual_renewable[i],
+                criteria_all$inverted_n_eal_score[i] ## EAL score
+                  )
+  criteria_all$score_og_weights_EAL[i] = weighted.mean(cbsa_data, criteria_weights_owen)
+}
+
 ```
+
 
 ```{r student weights}
 # weight criteria for students
@@ -151,7 +167,8 @@ weights_climate50_prop <- c(0.18, 0.07, 0.11, 0.07, 0.0, 0.07, 0.50)
   
 #make landlord_score column
 criteria_all <- criteria_all %>% 
-  mutate(score_climate50_prop = cbsa)#this is just a place holder
+  mutate(score_climate50_prop = cbsa, #this is just a place holder
+         score_climate50_prop_EAL = cbsa)
 
 
 size <- dim(criteria_all)
@@ -166,6 +183,21 @@ for (i in 1:size[1]) {
                   )
   criteria_all$score_climate50_prop[i] = weighted.mean(cbsa_data, weights_climate50_prop) 
 }
+
+### Using climate weight 50 and proportional others with EAL
+for (i in 1:size[1]) {
+  cbsa_data <- c(criteria_all$real_estate_score[i],
+                criteria_all$landlord_score[i],
+                 criteria_all$normalized_irr[i],
+                 criteria_all$inverted_n_total_co2[i],
+                criteria_all$inverted_n_health_emissions_cost[i],
+                criteria_all$normalized_annual_renewable[i],
+                criteria_all$inverted_n_eal_score[i]
+                  )
+  criteria_all$score_climate50_prop_EAL[i] = weighted.mean(cbsa_data, weights_climate50_prop) 
+}
+
+
 ```
 
 ```{r climate risk 35 and Jan 31 weights from owen}
@@ -199,11 +231,12 @@ criteria_all <- criteria_all %>%
          climate_impact = inverted_n_total_co2,
          health_impact = inverted_n_health_emissions_cost,
          electricity = normalized_annual_renewable,
-         climate_risk = normalized_inverted_climate_risk) %>% 
+         climate_risk = normalized_inverted_climate_risk,
+         climate_EAL_risk = inverted_n_eal_score) %>% 
   mutate_if(is.numeric, ~round(., 5))
 
 
-sheet_write(criteria_all, ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "criteria_all")
+sheet_write(criteria_all, ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "scores+EAL_2_2_23")
 ```
 
 
