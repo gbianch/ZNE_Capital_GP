@@ -54,8 +54,7 @@ criteria_weights_owen <- c(0.37, 0.12, 0.22, 0.07, 0.0, 0.07, 0.15)
 criteria_all <- criteria_all %>% 
   mutate(total_score_owen = cbsa, #this is just a place holder
          real_estate_score = as.numeric(real_estate_score),
-         landlord_score = as.numeric(landlord_score),
-         score_og_weights_EAL = cbsa
+         landlord_score = as.numeric(landlord_score)
   )
 
 size <- dim(criteria_all)
@@ -66,23 +65,8 @@ for (i in 1:size[1]) {
                  criteria_all$inverted_n_total_co2[i],
                 criteria_all$inverted_n_health_emissions_cost[i],
                 criteria_all$normalized_annual_renewable[i],
-                criteria_all$normalized_inverted_climate_risk[i]
-                  )
+                criteria_all$normalized_inverted_climate_risk[i])
   criteria_all$total_score_owen[i] = weighted.mean(cbsa_data, criteria_weights_owen)
-}
-
-##### original weights with EAL score
-
-for (i in 1:size[1]) {
-  cbsa_data <- c(criteria_all$real_estate_score[i],
-                criteria_all$landlord_score[i],
-                 criteria_all$normalized_irr[i],
-                 criteria_all$inverted_n_total_co2[i],
-                criteria_all$inverted_n_health_emissions_cost[i],
-                criteria_all$normalized_annual_renewable[i],
-                criteria_all$inverted_n_eal_score[i] ## EAL score
-                  )
-  criteria_all$score_og_weights_EAL[i] = weighted.mean(cbsa_data, criteria_weights_owen)
 }
 
 ```
@@ -90,11 +74,12 @@ for (i in 1:size[1]) {
 
 ```{r student weights}
 # weight criteria for students
-criteria_weights_students <- c(0.21, 0.0, 0.12, 0.17, 0.16, 0.17, 0.17)
+criteria_weights_students <- c(0.18, 0.0, 0.10, 0.19, 0.17, 0.14, 0.22)
 
 #make landlord_score column
 criteria_all <- criteria_all %>% 
-  mutate(total_score_students = cbsa) #this is just a place holder
+  mutate(total_score_students = cbsa,
+         stud_EAL_total = cbsa) #this is just a place holder
   
 
 size <- dim(criteria_all)
@@ -110,16 +95,6 @@ for (i in 1:size[1]) {
   criteria_all$total_score_students[i] = weighted.mean(cbsa_data, criteria_weights_students)
 }
 
-```
-
-
-```{r climate risk weighted 50 and other 0.1}
-# weight criteria for Owen
-weights_climate50 <- c(0.1, 0.1, 0.1, 0.1, 0.0, 0.1, 0.50)
-
-#make landlord_score column
-criteria_all <- criteria_all %>% 
-  mutate(score_climate50 = cbsa) #this is just a place holder
 
 size <- dim(criteria_all)
 for (i in 1:size[1]) {
@@ -129,38 +104,15 @@ for (i in 1:size[1]) {
                  criteria_all$inverted_n_total_co2[i],
                 criteria_all$inverted_n_health_emissions_cost[i],
                 criteria_all$normalized_annual_renewable[i],
-                criteria_all$normalized_inverted_climate_risk[i]
+                criteria_all$inverted_n_eal_score[i]
                   )
-  criteria_all$score_climate50[i] = weighted.mean(cbsa_data, weights_climate50)
+  criteria_all$stud_EAL_total[i] = weighted.mean(cbsa_data, criteria_weights_students)
 }
 
 ```
 
-```{r climate risk 40 }
-# weight criteria for Owen
-weights_climate40 <- c(0.15, 0.1, 0.15, 0.1, 0.0, 0.1, 0.40)
 
-#make landlord_score column
-criteria_all <- criteria_all %>% 
-  mutate(score_climate40 = cbsa) #this is just a place holder
-  
-
-size <- dim(criteria_all)
-for (i in 1:size[1]) {
-  cbsa_data <- c(criteria_all$real_estate_score[i],
-                criteria_all$landlord_score[i],
-                 criteria_all$normalized_irr[i],
-                 criteria_all$inverted_n_total_co2[i],
-                criteria_all$inverted_n_health_emissions_cost[i],
-                criteria_all$normalized_annual_renewable[i],
-                criteria_all$normalized_inverted_climate_risk[i]
-                  )
-  criteria_all$score_climate40[i] = weighted.mean(cbsa_data, weights_climate40)
-}
-```
-
-
-```{r climate risk 50 and proportional weights for others}
+```{r OWEN FINAL WEIGHTS climate risk 50 and proportional weights for others}
 
 weights_climate50_prop <- c(0.18, 0.07, 0.11, 0.07, 0.0, 0.07, 0.50)
 
@@ -200,7 +152,7 @@ for (i in 1:size[1]) {
 
 ```
 
-```{r climate risk 35 and Jan 31 weights from owen}
+```{r climate risk 35 and Jan 31 weights from owen, eval = FALSE}
 
 weights_climate35_owen <- c(0.25, 0.1, 0.15, 0.075, 0.0, 0.075, 0.35)
 
@@ -228,7 +180,7 @@ for (i in 1:size[1]) {
 
 criteria_all <- criteria_all %>% 
   rename(financial_score = normalized_irr,
-         climate_impact = inverted_n_total_co2,
+         co2_e = inverted_n_total_co2,
          health_impact = inverted_n_health_emissions_cost,
          electricity = normalized_annual_renewable,
          climate_risk = normalized_inverted_climate_risk,
@@ -236,11 +188,11 @@ criteria_all <- criteria_all %>%
   mutate_if(is.numeric, ~round(., 5))
 
 
-sheet_write(criteria_all, ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "scores+EAL_2_2_23")
+sheet_write(criteria_all, ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "FINAL_total_score")
 ```
 
 
-```{r data viz}
+```{r data viz, eval = FALSE}
 
 score_tidy <- criteria_all %>% 
   pivot_longer(cols = c(4:18),
