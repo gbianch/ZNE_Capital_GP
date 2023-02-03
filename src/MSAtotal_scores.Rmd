@@ -243,14 +243,15 @@ sheet_write(criteria_all, ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXU
 ```{r data viz}
 
 score_tidy <- criteria_all %>% 
-  pivot_longer(cols = c(real_estate_score, landlord_score, financial_score:climate_risk),
+  pivot_longer(cols = c(4:18),
                names_to = "criteria",
                values_to = "criteria_score") %>% 
   filter(city_msa != "Portland") %>% 
-  group_by(city_msa)
+  group_by(city_msa) %>% 
+  filter(criteria %in% c("real_estate_score", "landlord_score", "financial_score", "climate_impact", "electricity", "climate_risk", "climate_EAL_risk", "health_impact", "electricity"))
 
 
-ggplot(data = score_tidy, aes(y = city_msa, x = total_score_owen, fill = criteria)) + 
+ggplot(data = score_tidy, aes(y = city_msa, x = criteria_score, fill = criteria)) + 
     geom_col()
   
 ```
