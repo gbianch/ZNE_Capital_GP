@@ -46,7 +46,7 @@ criteria_all <- criteria_all[, col_order]
 ```
 
 
-```{r original weights}
+```{r original weights, eval = FALSE}
 # weight criteria for Owen
 criteria_weights_owen <- c(0.37, 0.12, 0.22, 0.07, 0.0, 0.07, 0.15)
 
@@ -72,14 +72,16 @@ for (i in 1:size[1]) {
 ```
 
 
-```{r student weights}
+```{r FINAL student weights}
 # weight criteria for students
 criteria_weights_students <- c(0.18, 0.0, 0.10, 0.19, 0.17, 0.14, 0.22)
 
 #make landlord_score column
 criteria_all <- criteria_all %>% 
-  mutate(total_score_students = cbsa,
-         stud_EAL_total = cbsa) #this is just a place holder
+  mutate(final_tot_students = cbsa,
+         stud_EAL_total = cbsa,
+         real_estate_score = as.numeric(real_estate_score),
+         landlord_score = as.numeric(landlord_score)) #this is just a place holder
   
 
 size <- dim(criteria_all)
@@ -92,7 +94,7 @@ for (i in 1:size[1]) {
                 criteria_all$normalized_annual_renewable[i],
                 criteria_all$normalized_inverted_climate_risk[i]
                   )
-  criteria_all$total_score_students[i] = weighted.mean(cbsa_data, criteria_weights_students)
+  criteria_all$final_tot_students[i] = weighted.mean(cbsa_data, criteria_weights_students)
 }
 
 
@@ -119,7 +121,7 @@ weights_climate50_prop <- c(0.18, 0.07, 0.11, 0.07, 0.0, 0.07, 0.50)
   
 #make landlord_score column
 criteria_all <- criteria_all %>% 
-  mutate(score_climate50_prop = cbsa, #this is just a place holder
+  mutate(owen_FINAL_score = cbsa, #this is just a place holder
          score_climate50_prop_EAL = cbsa)
 
 
@@ -133,7 +135,7 @@ for (i in 1:size[1]) {
                 criteria_all$normalized_annual_renewable[i],
                 criteria_all$normalized_inverted_climate_risk[i]
                   )
-  criteria_all$score_climate50_prop[i] = weighted.mean(cbsa_data, weights_climate50_prop) 
+  criteria_all$owen_FINAL_score[i] = weighted.mean(cbsa_data, weights_climate50_prop) 
 }
 
 ### Using climate weight 50 and proportional others with EAL
