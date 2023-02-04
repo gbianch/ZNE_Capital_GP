@@ -97,7 +97,10 @@ for (i in 1:size[1]) {
   criteria_all$final_tot_students[i] = weighted.mean(cbsa_data, criteria_weights_students)
 }
 
+```
 
+
+```{r student weights with EAL, eval = FALSE}
 size <- dim(criteria_all)
 for (i in 1:size[1]) {
   cbsa_data <- c(criteria_all$real_estate_score[i],
@@ -110,20 +113,17 @@ for (i in 1:size[1]) {
                   )
   criteria_all$stud_EAL_total[i] = weighted.mean(cbsa_data, criteria_weights_students)
 }
-
 ```
 
 
 ```{r OWEN FINAL WEIGHTS climate risk 50 and proportional weights for others}
 
 weights_climate50_prop <- c(0.18, 0.07, 0.11, 0.07, 0.0, 0.07, 0.50)
-
   
 #make landlord_score column
 criteria_all <- criteria_all %>% 
   mutate(owen_FINAL_score = cbsa, #this is just a place holder
          score_climate50_prop_EAL = cbsa)
-
 
 size <- dim(criteria_all)
 for (i in 1:size[1]) {
@@ -138,6 +138,9 @@ for (i in 1:size[1]) {
   criteria_all$owen_FINAL_score[i] = weighted.mean(cbsa_data, weights_climate50_prop) 
 }
 
+```
+
+```{r Climate with 50 & proportional others with EAL, eval=FALSE}
 ### Using climate weight 50 and proportional others with EAL
 for (i in 1:size[1]) {
   cbsa_data <- c(criteria_all$real_estate_score[i],
@@ -151,18 +154,15 @@ for (i in 1:size[1]) {
   criteria_all$score_climate50_prop_EAL[i] = weighted.mean(cbsa_data, weights_climate50_prop) 
 }
 
-
 ```
 
 ```{r climate risk 35 and Jan 31 weights from owen, eval = FALSE}
 
 weights_climate35_owen <- c(0.25, 0.1, 0.15, 0.075, 0.0, 0.075, 0.35)
-
   
 #make landlord_score column
 criteria_all <- criteria_all %>% 
   mutate(score_climate35_owen = cbsa)#this is just a place holder
-
 
 size <- dim(criteria_all)
 for (i in 1:size[1]) {
@@ -190,24 +190,32 @@ criteria_all <- criteria_all %>%
   mutate_if(is.numeric, ~round(., 5))
 
 
-sheet_write(criteria_all, ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "FINAL_total_score")
+#sheet_write(criteria_all, ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "FINAL_total_score")
 ```
 
 
-```{r data viz, eval = FALSE}
+```{r data viz}
+## read in weighted criteria sheet
+weighted_criteria <- read_sheet(ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "wtd_criteria_Owen")
 
-score_tidy <- criteria_all %>% 
-  pivot_longer(cols = c(4:18),
+
+score_tidy <- weighted_criteria %>% 
+  pivot_longer(cols = c(4:9), # selecting criteria cols
                names_to = "criteria",
                values_to = "criteria_score") %>% 
-  filter(city_msa != "Portland") %>% 
-  group_by(city_msa) %>% 
-  filter(criteria %in% c("real_estate_score", "landlord_score", "financial_score", "climate_impact", "electricity", "climate_risk", "climate_EAL_risk", "health_impact", "electricity"))
+ filter(city_msa != "Portland") # removing portland (negative number)
 
 
-ggplot(data = score_tidy, aes(y = city_msa, x = criteria_score, fill = criteria)) + 
-    geom_col()
+
+ggplot(data = score_tidy, aes(y = reorder(cbsa, FINAL_owen_SCORE), x = criteria_score, fill = criteria_labels)) + 
+    geom_col(aes(fill = criteria)) +
+  labs(x = "Total Score (Client)",
+       y = " ") +
+  guides(fill=guide_legend(title="Criteria (weighted)")) +
+scale_fill_discrete(labels=c('Climate Risk', 'CO2 Emissions', 'Electricity', "Finances", "Real Estate", "Landlord")) +
+   scale_fill_manual(values = c("#FDB462", "gold", "palevioletred1",  "#BC80BD", "#6699CC", "#44AA99")) 
   
+
 ```
 
 
