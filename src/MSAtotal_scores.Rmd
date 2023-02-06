@@ -196,25 +196,28 @@ criteria_all <- criteria_all %>%
 
 ```{r data viz}
 ## read in weighted criteria sheet
-weighted_criteria <- read_sheet(ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "wtd_criteria_Owen")
+weighted_criteria <- read_sheet(ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "wtd_criteria_Owen") %>% 
+  unite("msa_state", city_msa:state, sep = ", ")
 
 
+# read in cbsa data with full names
 score_tidy <- weighted_criteria %>% 
-  pivot_longer(cols = c(4:9), # selecting criteria cols
+  pivot_longer(cols = c("WT_real_estate":"WT_climRisk"), # selecting criteria cols
                names_to = "criteria",
                values_to = "criteria_score") %>% 
- filter(city_msa != "Portland") # removing portland (negative number)
+ filter(msa_state != "Portland, ME") %>%  # removing portland (negative number)
+  group_by(cbsa) 
 
 
 
-ggplot(data = score_tidy, aes(y = reorder(cbsa, FINAL_owen_SCORE), x = criteria_score)) + 
+ggplot(data = score_tidy, aes(y = reorder(msa_state, FINAL_owen_SCORE), x = criteria_score)) + 
     geom_col(aes(fill = criteria)) +
   labs(x = "Total Score (Client)",
        y = " ") +
+  theme_light() +
   guides(fill=guide_legend(title="Criteria (weighted)")) +
-   scale_fill_manual(values = c("#FDB462", "gold", "palevioletred1",  "#BC80BD", "#6699CC", "#44AA99"),
-                     labels=c('Climate Risk', 'CO2 Emissions', 'Electricity', "Finances", "Real Estate", "Landlord")) +
-  scale_y_discrete((labels = score_tidy$city_msa))
+   scale_fill_manual(values = c("palevioletred1","#FDB462",  "gold", "#44AA99", "dodgerblue4", "#BC80BD"),
+                     labels=c('Climate Risk', 'CO2 Emissions', 'Electricity', "Finances", "Real Estate", "Landlord Policy"))
   
 
 ```
