@@ -209,7 +209,7 @@ score_tidy <- weighted_criteria %>%
   group_by(cbsa) 
 
 
-jpeg(filename = "wt_criteria_client_bar_chart")
+tiff(filename = "wt_criteria_client_chart.tiff",  width = 6, height = 4, units = "in", res = 200)
 ggplot(data = score_tidy, aes(y = reorder(msa_state, FINAL_owen_SCORE), x = criteria_score)) + 
     geom_col(aes(fill = criteria)) +
   labs(x = "Total Score (Client)",
@@ -217,7 +217,7 @@ ggplot(data = score_tidy, aes(y = reorder(msa_state, FINAL_owen_SCORE), x = crit
   theme_bw() +
   guides(fill=guide_legend(title="Criteria (weighted)")) +
    scale_fill_manual(values = c("palevioletred1","#FDB462",  "gold", "#44AA99", "dodgerblue4", "#BC80BD"),
-                     labels=c('Climate Risk', 'CO2 Emissions', 'Electricity', "Finances", "Real Estate", "Landlord Policy")) +
+                     labels=c('Climate Risk', 'CO2 Emissions', 'Electricity', "Solar IRR", "Real Estate", "Landlord Policy")) +
   scale_x_continuous(limits = c(0, 0.7), expand = c(0,0), breaks=seq(0, 0.7, 0.1))
 dev.off()
 ```
