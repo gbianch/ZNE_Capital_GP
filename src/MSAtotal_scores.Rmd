@@ -207,13 +207,14 @@ score_tidy <- weighted_criteria %>%
 
 
 
-ggplot(data = score_tidy, aes(y = reorder(cbsa, FINAL_owen_SCORE), x = criteria_score, fill = criteria_labels)) + 
+ggplot(data = score_tidy, aes(y = reorder(cbsa, FINAL_owen_SCORE), x = criteria_score)) + 
     geom_col(aes(fill = criteria)) +
   labs(x = "Total Score (Client)",
        y = " ") +
   guides(fill=guide_legend(title="Criteria (weighted)")) +
-scale_fill_discrete(labels=c('Climate Risk', 'CO2 Emissions', 'Electricity', "Finances", "Real Estate", "Landlord")) +
-   scale_fill_manual(values = c("#FDB462", "gold", "palevioletred1",  "#BC80BD", "#6699CC", "#44AA99")) 
+   scale_fill_manual(values = c("#FDB462", "gold", "palevioletred1",  "#BC80BD", "#6699CC", "#44AA99"),
+                     labels=c('Climate Risk', 'CO2 Emissions', 'Electricity', "Finances", "Real Estate", "Landlord")) +
+  scale_y_discrete((labels = score_tidy$city_msa))
   
 
 ```
