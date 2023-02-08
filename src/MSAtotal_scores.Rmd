@@ -194,14 +194,14 @@ criteria_all <- criteria_all %>%
 ```
 
 
-```{r data viz}
+```{r client data viz}
 ## read in weighted criteria sheet
-weighted_criteria <- read_sheet(ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "wtd_criteria_Owen") %>% 
+client_weighted_criteria <- read_sheet(ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "wtd_criteria_Owen") %>% 
   unite("msa_state", city_msa:state, sep = ", ")
 
 
 # read in cbsa data with full names
-score_tidy <- weighted_criteria %>% 
+score_tidy <- client_weighted_criteria %>% 
   pivot_longer(cols = c("WT_real_estate":"WT_climRisk"), # selecting criteria cols
                names_to = "criteria",
                values_to = "criteria_score") %>% 
@@ -209,11 +209,12 @@ score_tidy <- weighted_criteria %>%
   group_by(cbsa) 
 
 
-tiff(filename = "wt_criteria_client_chart.tiff",  width = 6, height = 4, units = "in", res = 200)
-ggplot(data = score_tidy, aes(y = reorder(msa_state, FINAL_owen_SCORE), x = criteria_score)) + 
+tiff(filename = "wt_criteria_client_chart.tiff", width = 8, height = 6, units = "in", res = 300)
+ggplot(data = score_tidy, aes(y = reorder(msa_state, FINAL_owen_SCORE), x = criteria_score)) +
     geom_col(aes(fill = criteria)) +
-  labs(x = "Total Score (Client)",
-       y = " ") +
+  labs(x = "Total Score",
+       y = " ",
+       title = "Client") +
   theme_bw() +
   guides(fill=guide_legend(title="Criteria (weighted)")) +
    scale_fill_manual(values = c("palevioletred1","#FDB462",  "gold", "#44AA99", "dodgerblue4", "#BC80BD"),
@@ -222,4 +223,32 @@ ggplot(data = score_tidy, aes(y = reorder(msa_state, FINAL_owen_SCORE), x = crit
 dev.off()
 ```
 
+```{r}
+## read in weighted criteria sheet
+student_weighted_criteria <- read_sheet(ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "wtd_criteria_stud") %>% 
+  unite("msa_state", city_msa:state, sep = ", ")
+
+
+# read in cbsa data with full names
+score_tidy2 <- student_weighted_criteria %>% 
+  pivot_longer(cols = c("WT_real_estate":"WT_climRisk"), # selecting criteria cols
+               names_to = "criteria",
+               values_to = "criteria_score") %>% 
+# filter(msa_state != "Portland, ME") %>%  # removing portland (negative number)
+  group_by(cbsa) 
+
+
+tiff(filename = "wt_criteria_student_chart.tiff", width = 8, height = 6, units = "in", res = 300)
+ggplot(data = score_tidy2, aes(y = reorder(msa_state, FINAL_st_score), x = criteria_score)) + 
+    geom_col(aes(fill = criteria)) +
+  labs(x = "Total Score",
+       y = " ",
+       title = "Student") +
+  theme_bw() +
+  guides(fill=guide_legend(title="Criteria (weighted)")) +
+   scale_fill_manual(values = c("palevioletred1","#FDB462",  "gold", "#44AA99", "dodgerblue4", "#BC80BD"),
+                     labels=c('Climate Risk', 'CO2 Emissions', 'Electricity', "Solar IRR", "Real Estate", "Health Impacts")) +
+  scale_x_continuous(limits = c(0, 0.8), expand = c(0,0), breaks=seq(0, 0.8, 0.1))
+dev.off()
+```
 
