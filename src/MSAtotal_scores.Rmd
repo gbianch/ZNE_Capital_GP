@@ -209,7 +209,7 @@ score_tidy <- client_weighted_criteria %>%
   group_by(cbsa) 
 
 
-tiff(filename = "wt_criteria_client_chart.tiff", width = 8, height = 6, units = "in", res = 300)
+tiff(filename = "wt_criteria_client_chart.tiff",width = 8, height = 6, units = "in", res = 300, pointsize = 12)
 ggplot(data = score_tidy, aes(y = reorder(msa_state, FINAL_owen_SCORE), x = criteria_score)) +
     geom_col(aes(fill = criteria)) +
   labs(x = "Total Score",
@@ -217,7 +217,7 @@ ggplot(data = score_tidy, aes(y = reorder(msa_state, FINAL_owen_SCORE), x = crit
        title = "Client") +
   theme_bw() +
   guides(fill=guide_legend(title="Criteria (weighted)")) +
-   scale_fill_manual(values = c("palevioletred1","#FDB462",  "gold", "#44AA99", "dodgerblue4", "#BC80BD"),
+   scale_fill_manual(values = c("palevioletred1","orange",  "gold", "#44AA99", "dodgerblue4", "#BC80BD"),
                      labels=c('Climate Risk', 'CO2 Emissions', 'Electricity', "Solar IRR", "Real Estate", "Landlord Policy")) +
   scale_x_continuous(limits = c(0, 0.7), expand = c(0,0), breaks=seq(0, 0.7, 0.1))
 dev.off()
@@ -246,7 +246,7 @@ ggplot(data = score_tidy2, aes(y = reorder(msa_state, FINAL_st_score), x = crite
        title = "Student") +
   theme_bw() +
   guides(fill=guide_legend(title="Criteria (weighted)")) +
-   scale_fill_manual(values = c("palevioletred1","#FDB462",  "gold", "#44AA99", "dodgerblue4", "#BC80BD"),
+   scale_fill_manual(values = c("palevioletred1", "orange",  "gold", "#44AA99", "dodgerblue4", "#6495ED"),
                      labels=c('Climate Risk', 'CO2 Emissions', 'Electricity', "Solar IRR", "Real Estate", "Health Impacts")) +
   scale_x_continuous(limits = c(0, 0.8), expand = c(0,0), breaks=seq(0, 0.8, 0.1))
 dev.off()

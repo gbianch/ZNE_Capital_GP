@@ -49,7 +49,9 @@ compliedMSA_realEstate<- select_MSAs %>%
   mutate(income_to_homeprice = median_income/house_price_2021) %>% 
   # calculate rent to income ratio
   # multiply monthly rent x 12 for annual rent!
-  mutate(med_rent_to_income = (median_rent2021*12)/median_income)
+  mutate(med_rent_to_income = (median_rent2021*12)/median_income) 
+
+sheet_write(compliedMSA_realEstate, ss = "https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=426650684", sheet = "real_estate_metrics")
 
 ```
 
