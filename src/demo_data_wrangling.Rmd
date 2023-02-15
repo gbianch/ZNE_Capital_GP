@@ -2,34 +2,36 @@
 title: "Metropolitan Statistical Area Evaluation"
 author: "Grace Bianchi"
 date: "5/12/2022"
-output:   html_document
+output:   
+  html_document: 
+  code_folding: hide
 ---
 
-This report provides an explanatory overview of demographic and real estate data for metropolitan statistical areas. The code wrangles and analyzes data collected from government agencies to create metrics to explore the relationships between criteria and compare across MSAs. Specifically, this data analysis includes population growth, household income, employment rates, house prices, and property taxes. Preliminary analysis of population change and size narrowed down potential areas which experienced population growth rate greater than 0.5% and have populations greater than 300,000 people. In addition, 28 MSAs were removed from analysis, as requested by the client, due to hyper-competitive real estate markets. In brief, there are 44 metropolitan statistical areas with potential for ZNE Capital aqcuire real estate.
+This report provides an explanatory overview of demographic and real estate data for metropolitan statistical areas. The code wrangles and analyzes data collected from government agencies to create metrics to explore the relationships between criteria and compare across MSAs. Specifically, this data analysis includes population growth, household income, employment rates, house prices, and property taxes. Preliminary analysis of population change and size narrowed down potential areas which experienced population growth rate greater than 0.5% and have populations greater than 300,000 people. In addition, 27 MSAs were removed from analysis, as requested by the client, due to hyper-competitive real estate markets. In brief, there are 29 metropolitan statistical areas with potential for ZNE Capital aqcuire real estate.
 
 ## Preliminary analysis {.tabset}
 
-```{r setup, include=FALSE, warning = FALSE, message = FALSE}
+```{r setup, include=TRUE, warning = FALSE, message = FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 
 library(tidyverse)
 library(here)
 library(janitor) #clean_names
 library(DT) # create data table
-library(scales) 
+# library(scales) 
 library(lubridate)
 library(gridExtra) 
 library(ggrepel)
 library(kableExtra)
-library(googlesheets4)
-library(tigris) # Census shape files
+library(googlesheets4) # output tables to google sheet
+library(tigris) # imports Census shape files
 library(sf)
 options(tigris_class = "sf")
 options(tigris_use_cache = TRUE)
 ```
 
 ### Population Growth
-All states were considered with the exception of CA, HI, and AK. Initial analysis of Metropolitan Statistical Areas (MSAs) relied on Census data of annual population estimates, in which the population had to be greater than 300,000 individuals for the purpose of attracting investors. Population change from 2020 to 2021 was calculated by $$\frac{2021 estimate- 2020 estimate}{2020 estimate} * 100$$
+All states were considered with the exception of CA, HI, and AK. Initial analysis of Metropolitan Statistical Areas (MSAs) relied on Census data of annual population estimates, in which the population had to be greater than 500,000 individuals for the purpose of attracting investors. Population change from 2020 to 2021 was calculated by $$\frac{2021 estimate- 2020 estimate}{2020 estimate} * 100$$
 MSAs with a population growth > 0.5%, were selected to gather further data on. The 0.5% growth was determined.
 
 Dataset: Annual Resident Population Estimates and Estimated Components of Resident Population Change for Metropolitan and Micropolitan Statistical Areas and Their Geographic Components: April 1, 2020 to July 1, 2021 (CBSA-EST2021-ALLDATA)
@@ -42,40 +44,29 @@ msa_pop_2021_data <- read_csv(here("data","raw", "msa_2021_pop_data.csv")) %>%
   clean_names() %>% # data wrangling to make column headers in lower_snake_case
   filter(lsad == "Metropolitan Statistical Area") %>% # select MSA cities
   select("cbsa", "name", "popestimate2020", "popestimate2021", "residual2020", "residual2021") %>% # select data 
-  
   separate(col = "name",
            into = c("MSA", "state"), # split city and state data
            sep = ", ") %>% 
-  mutate(pop_percent_change = (popestimate2021-popestimate2020)/popestimate2020 * 100)  # add population % change column 
- 
+  mutate(pop_percent_change = (popestimate2021-popestimate2020)/popestimate2020 * 100)  # calculate population % change 
 
 # create object with viable MSAs 
 potential_MSAs <- msa_pop_2021_data %>% 
-  filter(pop_percent_change > 0.5 ) %>% 
-  filter(popestimate2021 >= 300000) %>% 
+  filter(pop_percent_change > 0.5 ) %>% # select areas with population growth greater than .5%
+  filter(popestimate2021 >= 500000) %>% 
   mutate(pop_percent_change20_21 = round(pop_percent_change, digits = 3)) %>% 
-  filter (!state %in% c("CA", "HI", "AK")) %>% 
-  #separate(col = "state", into = c("state1", "state2", "state3"),    sep = "-") %>% 
-  filter(!cbsa %in% c("10580", "10900", "12420", "12940", "14260", "15980", "18580", "19100", "19660", "19740", "23540", "25420", "26420", "27260", "29820", "34940", "36260", "36740", "38060", "39100", "39300", "39340", "41620", "45220", "45300", "46060", "46140", "39900")) %>%  # remove MSAs as instructed by Owen 
-  mutate(normalized_pop2021 = (popestimate2021-min(popestimate2021))/ (max(popestimate2021)-min(popestimate2021))) %>% 
-  select(cbsa, MSA, state, pop_percent_change20_21, normalized_pop2021, popestimate2021) 
+  filter (!state %in% c("CA", "HI", "AK")) %>% # remove areas within these states
+  filter(!cbsa %in% c("10580", "10900", "12420", "12940", "14260", "15980", "18580", "19100", "19660", "19740", "23540", "25420", "26420", "27260", "29820", "34940", "36260", "36740", "38060", "39100", "39300", "39340", "41620", "45220", "45300", "46060", "46140", "39900")) %>%  # remove MSAs as instructed by client 
+  select(cbsa, MSA, state, pop_percent_change20_21, popestimate2021) 
 
 ```
 
 
-```{r population growth msa map, eval=FALSE}
-# adding column for levels of population growth
-pop_growth_pos <- potential_MSAs %>% 
-  mutate(pop_pos = case_when(
-    pop_percent_change20_21 > 2 ~ "high",
-    pop_percent_change20_21 > 1 ~ "medium",
-    pop_percent_change20_21 > 0 ~ "low"
-  ))
-
-# MSA shapefiles from Census
+```{r population growth map, eval=FALSE}
+## optional visualization
+# read in MSA shapefiles from Census
 cbsa <- core_based_statistical_areas(cb = TRUE) %>% 
   mutate(CBSAFP = as.numeric(CBSAFP)) %>% 
-  inner_join(pop_growth_pos, by = c("CBSAFP" = "cbsa"))
+  inner_join(potential_MSAs, by = c("CBSAFP" = "cbsa")) # merge msa data with shape files
 
 # state and U.S. map coordinates
 states <- map_data("state")
@@ -86,13 +77,14 @@ ggplot() +
   geom_polygon(data = states,
                aes(x = long, y = lat,
                    group = group)) + 
-  geom_sf (data = cbsa, aes(fill = pop_pos)) +
-  labs(title = "MSAs with the highest population growth in 2020")
+  geom_sf (data = cbsa, fill = "lightgreen") +
+  labs(title = "Metro Areas included in this analysis", x = "", y = "")
 ```
 
-Figure 1. Population growth in Metropolitan Statistical Areas (n=44) in 2020. Highlighted areas have a population > 300,000 individuals and a population growth rate greater than 0.5%. The colors of the MSAs represent incremental growth rates, in which low(green) is 0.5-1% increase, medium(blue) is 1-2% increase, and high(pink) is 2-3.5% increase. Data: U.S. Census Bureau, Population Division.
+Figure 1. Population growth in Metropolitan Statistical Areas (n=29) in 2020-2021. Highlighted areas have a population > 300,000 individuals and a population growth rate greater than 0.5%. The colors of the MSAs represent incremental growth rates, in which low(green) is 0.5-1% increase, medium(blue) is 1-2% increase, and high(pink) is 2-3.5% increase. Data: U.S. Census Bureau, Population Division.
 
 ```{r population change visual, fig.height = 7, fig.align='center', eval = FALSE}
+# create plot of MSAs sorted grom highest population growth to lowest
 ggplot(data = positive_MSA_pop_change, aes(x = pop_percent_change20_21, y = reorder(MSA, pop_percent_change20_21))) + 
   geom_point(size = 3, color = "darkgreen") + 
   theme_minimal(base_size = 12.5) 
@@ -110,18 +102,16 @@ Source: [U.S. Census Bureau](https://data.census.gov/cedsci/table?q=median%20hou
 MSA_income_data <- read_csv(here("data","raw", "2021_income_data.csv")) %>% 
   row_to_names(1) %>% 
   clean_names() %>% 
-  mutate(median_income = as.numeric(estimate_households_median_income_dollars)) %>% 
-  mutate(income_moe_USD = as.numeric(margin_of_error_households_median_income_dollars)) %>% 
+  mutate(median_income = as.numeric(estimate_households_median_income_dollars),
+  income_moe_USD = as.numeric(margin_of_error_households_median_income_dollars)) %>% 
   separate(col = "geography",
            into = c("id", 'cbsa'),
            sep = 9) %>% 
-  mutate(cbsa = as.numeric(cbsa)) # change column class from chr to dbl
+  mutate(cbsa = as.numeric(cbsa)) %>% # change column class from chr to dbl
+  inner_join(potential_MSAs)
   
-# join population growth data set to household median income
-income_potential_MSAs <- MSA_income_data %>% # rename row names
-  select(cbsa, median_income) %>% 
-  inner_join(potential_MSAs) %>% 
-  select(cbsa, MSA, state, median_income, pop_percent_change20_21, popestimate2021, normalized_pop2021) #reorder columns
+# join household median income to existing msa dataframe
+potential_MSAs <- potential_MSAs %>% add_column(med_income = MSA_income_data$median_income)
 
 ```
 
@@ -162,76 +152,43 @@ unemployment_data <- read_csv(here("data", "raw", "civil_labor_force_BLS.csv")) 
 
 # data wrangling, only selecting data for potential MSAs
 MSA_employment <- unemployment_data %>% 
-  filter(year >= 2019) %>% 
+  filter(year >= 2018) %>% 
   mutate(cbsa = ifelse(cbsa == '76750', "38860", cbsa)) %>% # change south portland, ME to corresponding cbsa
   mutate(cbsa = as.numeric(cbsa)) %>% 
-  full_join(income_potential_MSAs) %>% 
+  right_join(potential_MSAs) %>% 
+  group_by(MSA, year) %>% 
+  summarize(avg_employment_rate = mean(employment_rate)) %>% 
+  mutate(avg_emp_rate = (avg_employment_rate-lag(avg_employment_rate))/lag(avg_employment_rate)*100, 
+          avg_emp_rate = round(avg_emp_rate, digits = 4)) %>% 
   drop_na() %>% 
-  select(cbsa, MSA, year, month, employment_rate)
-
-avg_emp_yoy <- MSA_employment %>% 
-  group_by(MSA, year) %>% 
-  summarize(avg_employment_rate = mean(employment_rate)) %>% 
-  mutate(avg_emp_YoY = (avg_employment_rate-lag(avg_employment_rate))/lag(avg_employment_rate)*100) %>% 
-  mutate(avg_emp_YoY = round(avg_emp_YoY, digits = 4)) %>% 
-  drop_na() 
-
-avg_emp_change <- MSA_employment %>% 
-  group_by(MSA, year) %>% 
-  summarize(avg_employment_rate = mean(employment_rate)) %>% 
-  pivot_wider(names_from = year,
-              values_from = avg_employment_rate,
-              names_prefix = "emp_rate") %>% 
-  mutate(emp_change20_21 = (emp_rate2021 - emp_rate2020) /emp_rate2020 *100) %>% 
-  full_join(avg_emp_yoy) %>% 
+  mutate(emp_pos = case_when( 
+    avg_emp_rate > 0 ~ "TRUE",
+    avg_emp_rate < 1 ~ "FALSE"))
+  
+MSA_employ_rate <- MSA_employment %>% 
   filter(year == "2021")
               
-
-
-MSA_emp_income <- income_potential_MSAs %>% 
-  full_join(avg_emp_yoy) %>% 
-  filter(year == "2021") %>% 
-  select(!c(avg_employment_rate, year))
+potential_MSAs$employ_change <- MSA_employ_rate$avg_emp_rate 
   
 ```
-
-```{r}
-# adding portland employment rates from https://data.bls.gov/pdq/SurveyOutputServlet
-portland_employment_data <- unemployment_data %>% 
-  filter(year >= 2019) %>% 
-  filter(cbsa == "76750") %>% 
-   group_by(year) %>% 
-  summarize(avg_employment_rate = mean(employment_rate)) %>% 
-  mutate(avg_emp_YoY = (avg_employment_rate-lag(avg_employment_rate))/lag(avg_employment_rate)*100) %>% 
-  mutate(avg_emp_YoY = round(avg_emp_YoY, digits = 4))
-
-employment_data_jan_2021 <- 100-4.9
-employment_data_jan_2022 <- 100- 3.6
-
-yoy <- (employment_data_jan_2022 - employment_data_jan_2021)/ employment_data_jan_2021 *100
-
-
-```
-
 
 
 ```{r employment visuals, fig.align = "center", fig.show="hold", fig.height= 7, fig.width=10, eval = FALSE}
 # visual of MSA employment rates, shows major drop during covid
-ggplot(MSA_employment_yoy, aes(x = year, y = employment_rate, color = MSA)) +
+ggplot(MSA_employment, aes(x = year, y = avg_employment_rate, color = MSA)) +
   geom_line() +
-  xlim(2021, 2022) +
+  xlim(2019, 2022) +
   theme(legend.position = "none") +
-
   labs(x = "Year",
        y = "Employment Rate",
-      title = "Employment Rate Trend since 2016")
+      title = "Employment Rate Trend since COVID-19 Pandemic")
 
 # year over year change in employment rate, split up by year
-ggplot(MSA_employment_yoy, aes(x = employment_YoY, y = reorder(MSA, employment_YoY), fill = emp_pos)) +
-  geom_col(position = "identity", color = "black", size = 0.25) +
+ggplot(MSA_employment, aes(x = avg_emp_rate, y = reorder(MSA, avg_emp_rate))) +
+  geom_col(position = "identity", aes(fill = emp_pos), size = 0.25) +
   scale_fill_manual(values = c("red", "darkolivegreen3"), guide = FALSE) +
   facet_grid(~year) +
-  labs(x = "Year-over_year change in employment rate",
+  labs(x = "Change in employment rate",
        y = " ")
 
 ```
@@ -242,7 +199,7 @@ ggplot(MSA_employment_yoy, aes(x = employment_YoY, y = reorder(MSA, employment_Y
 2021 Median Rent from https://www.huduser.gov/portal/datasets/50per.html#2021
 
 ```{r median rent}
-# median rents from hud
+# data wrangling 2021 median rent
 MSA_median_rent2021_data <- read_csv(here("data", "raw", "2021MSA_medianrent.csv")) %>% 
   separate(col = cbsasub21,
            into = c("metro", "cbsa"),
@@ -250,12 +207,13 @@ MSA_median_rent2021_data <- read_csv(here("data", "raw", "2021MSA_medianrent.csv
   separate(col = cbsa,
            into = c("unknown", "cbsa"),
            sep = -5) %>% 
-  mutate(cbsa = ifelse(cbsa == 'M6400', "38860", cbsa)) %>% 
-  mutate(cbsa = as.numeric(cbsa)) %>% 
-  mutate(median_rent2021 = as.numeric(rent50_1)) %>% 
+  mutate(cbsa = ifelse(cbsa == 'M6400', "38860", cbsa),
+        cbsa = as.numeric(cbsa) ,
+        median_rent2021 = as.numeric(rent50_1)) %>% # select median rent for 1 bedroom apartments
   select(cbsa, median_rent2021) %>% 
   right_join(potential_MSAs) 
 
+# 2022 median rent
 MSA_median_rent2022_data <- read_csv(here("data", "raw", "2022MSA_median_rent.csv")) %>% 
   separate(col = cbsasub22,
            into = c("metro", "cbsa"),
@@ -263,14 +221,15 @@ MSA_median_rent2022_data <- read_csv(here("data", "raw", "2022MSA_median_rent.cs
   separate(col = cbsa,
            into = c("unknown", "cbsa"),
            sep = -5) %>% 
-  mutate(cbsa = ifelse(unknown == '38860M', "38860", cbsa)) %>% 
-  mutate(median_rent2022 = as.numeric(rent_50_1)) %>% 
+  mutate(cbsa = ifelse(unknown == "38860M" & areaname22 == "Portland, ME HUD Metro FMR Area", "38860", cbsa),
+         cbsa = as.numeric(cbsa),
+         median_rent2022 = as.numeric(rent_50_1)) %>% 
   select(cbsa, median_rent2022) %>% 
-  mutate(cbsa = as.numeric(cbsa)) %>% 
-  right_join(MSA_median_rent2021_data)
+  right_join(potential_MSAs)
 
-potential_MSAs <- MSA_median_rent2022_data %>% 
-  left_join(MSA_emp_income)
+potential_MSAs <- potential_MSAs %>% 
+  add_column(med_rent2021 = MSA_median_rent2021_data$median_rent2021, # add rent data
+             med_rent_2022 = MSA_median_rent2022_data$median_rent2022)
   
 ```
 
@@ -284,26 +243,20 @@ Source: [The National Association of Realtors](https://www.nar.realtor/research-
 
 ```{r house price data}
 metro_house_cost_data <- read_csv(here("data","raw", "metro_home_costs", "metro-home-prices-2022-11-10.csv")) %>% 
-  row_to_names(3) %>% 
+  row_to_names(3) %>% # make sure column headers are correct
   clean_names() %>% 
   separate(col = "metropolitan_area",
            into = c("cbsa", 'metro_area'),
            sep = 5) %>% 
-  mutate(cbsa = as.numeric(cbsa)) %>% 
-  mutate(x2021 = as.numeric(x2021)) %>% 
-  mutate(x2021 = x2021 * 1000) %>% 
-  rename(house_price_2021 = x2021) 
-
-metro_house_prices <- metro_house_cost_data %>%
-  select(cbsa, house_price_2021) %>% 
+  mutate(cbsa = as.numeric(cbsa),
+        x2021 = as.numeric(x2021), 
+        house_price_2021 = x2021 * 1000) %>% # data is proivded as thousands, so multiply to get correct ratio
   right_join(potential_MSAs) %>% 
-  select(cbsa, MSA, state, pop_percent_change20_21, normalized_pop2021, popestimate2021, median_income, avg_emp_YoY, median_rent2021, median_rent2022, house_price_2021) %>% 
-  mutate(house_price_2021 = ifelse(cbsa == "12260", "284900", house_price_2021)) %>% 
-  mutate(house_price_2021 = ifelse(cbsa == "32580", "259000", house_price_2021))
+  mutate(house_price_2021 = ifelse(cbsa == "12260", "284900", house_price_2021), 
+        house_price_2021 = ifelse(cbsa == "32580", "259000", house_price_2021))
 
-MSAs <-metro_house_prices %>% 
-  filter(popestimate2021 >= 500000) %>% 
-  distinct(cbsa, .keep_all = TRUE) # remove duplicate portland row
+potential_MSAs$house_price_2021 <- metro_house_cost_data$house_price_2021 
+
 ```
 
 
@@ -318,33 +271,19 @@ The following MSAs were not included in the housing dataset:
 - Salisbury, MD
 
 
-```{r, house price visual, fig.height = 7, fig.align='center', eval = FALSE}
-ggplot(metro_house_prices, aes(x = houseprice_change21_22, y = reorder(MSA, houseprice_change21_22))) +
-  geom_col(fill = "dodgerblue4") +
-  geom_text(aes(label = houseprice_change21_22),
-            size = 4,
-            hujust = 1, nudge_x = -1,
-            color = "white") +
-  theme_minimal()  +
-  labs(x = "% change",
-       y = "",
-       title = "Change in House Prices in 2021")
-
-```
-
-
 ### MSA data table
 
 ```{r data table}
 # table seperated by MSAs
-datatable(MSAs, extensions = 'Buttons', options = list(
+datatable(potential_MSAs, extensions = 'Buttons', options = list(
     dom = 'Bfrtip',
     buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
   )
 )
 
-#gs4_create("updated_MSAs")
-sheet_write(MSAs, ss = "https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=0", sheet = "MSAs")
+#gs4_create("real_estate_inputs")
+#output data into google sheet
+sheet_write(potential_MSAs, ss = "https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=0", sheet = "MSA_demographics")
 ```
 
 ### City Data Table
@@ -352,19 +291,13 @@ MSAs were split up by cities to collect utility, rent, and landlord data.
 
 ```{r MSAs seperate into cities}
 #  split up MSAs into cities to collect utility, rent, and landlord data.
-msa_seperated <- MSAs %>% 
+msa_seperated <- potential_MSAs %>% 
   separate_rows(MSA, sep = "-") %>% 
   rename(city = MSA) %>% # separate MSA cities into their own columns
   filter(! city == "")
 
-#gs4_create("updated_MSAs")
+#gs4_create("real_estate_inputs")
 sheet_write(msa_seperated, ss = "https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=0", sheet = "cities")
 
-# table seperated by city
-datatable(msa_seperated, extensions = 'Buttons', options = list(
-    dom = 'Bfrtip',
-    buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
-  )
-)
 
 ```
