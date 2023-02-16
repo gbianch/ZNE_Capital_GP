@@ -9,31 +9,27 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
-library(janitor)
+library(janitor) # clean_names()
 library(googlesheets4)
 library(DT)
-library(MCDA)
 
 
-city_realEstate_data <- read_sheet("https://docs.google.com/spreadsheets/d/10n55Gt0rySN96OGTQ2_8PzeTcX66n26sOlZBiuiAeBU/edit#gid=808954990")
+city_occupancy_data <- read_sheet("https://docs.google.com/spreadsheets/d/10n55Gt0rySN96OGTQ2_8PzeTcX66n26sOlZBiuiAeBU/edit#gid=808954990") %>% 
+  clean_names() %>% 
+  select(!x7) %>% 
+  rename(occ_rate2021 = percent_occupancy_2021)
 
-select_MSAs <- read_sheet("https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit?usp=sharing")
+MSA_dempgraphic_data <- read_sheet("https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit?usp=sharing", sheet = "MSA_demographics")
 
 anchor_cities <- read_sheet("https://docs.google.com/spreadsheets/d/1leWRliw7cGGQTGIdBJzakjWZ4skQzSh04lFw_LfbtLU/edit#gid=0") %>%  clean_names()
 
 ```
 
 ```{r}
-# aggregate yardi data into MSAs by cbsa
-city_realEstate_data <- city_realEstate_data %>% 
-  clean_names() %>% 
-  select(!x7) %>% 
-  rename(avg_rent2022 = x2022_rent) %>% 
-  rename(occ_rate2021 = percent_occupancy_2021)
 
 anchor_cities_list <- unique(anchor_cities$anchor_city)
 
-anchor_city_data <- city_realEstate_data %>% 
+anchor_city_data <- city_occupancy_data %>% 
   filter(city %in% c(anchor_cities_list))
   
 ```
