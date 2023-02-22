@@ -11,17 +11,24 @@ library(tigris) # for shape files
 options(tigris_use_cache = TRUE)
 
 census_api_key("ebab921b3002df9b71881ad6c426f34281ce0e11", overwrite = "TRUE")
-resURL <- "https://api.census.gov/data/2021/acs/acs1?get=NAME,B01001_001E&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620&key=ebab921b3002df9b71881ad6c426f34281ce0e11" 
-ljson <- fromJSON(resURL)
+popURL <-"http://api.census.gov/data/2021/acs/acs1?key=ebab921b3002df9b71881ad6c426f34281ce0e11"
+  #"https://api.census.gov/data/2021/acs/acs1?get=NAME,B01001_001E&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:35620&key=ebab921b3002df9b71881ad6c426f34281ce0e11" 
+ljson <- fromJSON(popURL)
+
+pop_est <- get_estimates(geography = "metropolitan statistical area/micropolitan statistical area",
+                         product = "housing")
+
+msa_flows <- get_flows(geography = "metropolitan statistical area/micropolitan statistical area",
+                      year = 2021)
+
 
 # reads in metro areas
 census_data <- get_acs(geography = "cbsa",  year = 2021, 
-              variables = c("B19013_001E", # median household income
-              "B23025_003E", # total civilian labor force
-              "B23025_004E"),   # employed labor force
+              variables = c(median_income = "B19013_001E", # median household income
+              total_labor_force = "B23025_003E", # total civilian labor force
+              employed_labor_force = "B23025_004E"),   # employed labor force
               output = "wide",
-              keep_geo_vars = TRUE) %>% 
-  rename("median_income" = "B19013_001E")
+              keep_geo_vars = TRUE) 
 
 # census metro area shape files
 cbsa_shp <- core_based_statistical_areas() 
