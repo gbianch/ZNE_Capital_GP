@@ -32,8 +32,6 @@ census_data <- get_acs(geography = "cbsa",  year = 2021,
 # census metro area shape files
 cbsa_shp <- core_based_statistical_areas() 
 
-real_estate_inputs <- read_sheet("https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=519968233")
-
 
 ui <- fluidPage(
   # Application title
