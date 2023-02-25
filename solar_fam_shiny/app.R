@@ -25,11 +25,11 @@ msa_shp <- core_based_statistical_areas() %>%
   janitor::clean_names() %>% 
   select(!c(csafp, lsad, cbsafp))
 
-state_shp <- data(state_laea) %>% 
-  st_transform(state_laes, st_crs(msa_shp))
+state_shp <- states(class = "sf", progress_bar = TRUE) %>% 
+  st_transform(st_crs(msa_shp))
 
 # merge criteria table with shp data
-unwt_criteria_shp <- msa_shp %>% 
+unwt_criteria_shp <- criteria_unweighted %>% 
   merge(msa_shp, by.x = "cbsa", by.y = "geoid")
 
 ui <- fluidPage(
