@@ -44,64 +44,51 @@ ui <- fluidPage(
              tabPanel("Landing Page", 
                       mainPanel("Background Info",
                         h5("Sixth level title"),
-                        #plotOutput("map"),
-                        h4("model flow chart"), 
-                        ### Add model image here
+                        h4("model flow chart"),  ### Add model image here
                         div(img(src = "model_no_weights.jpg",  width = "800", height = "400"), style="text-align: center;")
                       ) ### end mainPanel
              ), # ## END of tab 1
-            
              ### tab2
              tabPanel("Coefficient Customization",
-                    box(title = "Criteria Weights", width = 6, status = "primary",
-                          fluidRow(column(2,
-                                          ### inputs for weights
-                                          numericInput(inputId = "REWtInput", label = "Real Estate",
-                                                       value = 0,width = "100px", min = 0.0,max = 1.0,step = 0.05) # end RE weight input
-                                          ), # end RE fcolumn
-                                   column(2, numericInput(inputId = "LandlordWtInput", label = "Landlord Policy",
-                                                       value = 0,
-                                                       width = "100px",
-                                                       min = 0.0,max = 1.0,step = 0.05) # end landlord weight input
-                                          ), # end landlord fluid row
-                                   column(2, numericInput(inputId = "ElectrictyWtInput",
-                                                          label = "Electricity",
-                                                          value = 0,width = "100px",
-                                                          min = 0.0, max = 1.0, step = 0.05) # end electricity weight input
-                                          )), #  fluid row 1
-                          fluidRow(column(2, numericInput(inputId = "CO2WtInput",
-                                                          label = "CO2 Emissions",value = 0,width = "100px",
-                                                          min = 0.0, max = 1.0,step = 0.05) # end Co2 weight input
-                                          ), # end Co2 fluid row
-                                   column(2, numericInput(inputId = "ClimateRiskWtInput",
-                                                          label = "Climate Risk",value = 0,width = "100px",
-                                                          min = 0.0, max = 1.0, step = 0.05) # end climate risk weight input
-                                          ), # end climate risk input
-                                   column(2, numericInput(inputId = "HealthWtInput",
-                                                             label = "Health Impacts",value = 0,
-                                                             width = "100px",min = 0.0,max = 1.0, step = 0.05) # end health impact weight input
-                                          )), # end health impacts input
-                          fluidRow(column(4, numericInput(inputId = "SolarIrrWtInput",
-                                                          label = "Solar IRR",
-                                                          value = 0,
-                                                          width = "100px",
-                                                          min = 0.0, max = 1.0, step = 0.05) # end irr input
-                                          )), # end IRR fluid row
-                        fluidRow(column(2, actionButton(inputId = "EnterWeights", label = "Calculate")))
-                          ), # end box
-                  
-                        mainPanel(
-                          verbatimTextOutput(outputId = "wt_sum"),
-                          dataTableOutput(outputId = "wt_table")
-                          # tabsetPanel(
-                          #   id = "tabset",
-                          #   tabPanel("Barchart",)),
-                          #   tabPanel("Map", "two"),
-                          #   tabPanel("Table", "table"))
-                          # ) #end tabset panel 
-                        ) # tab 1end main panel
                       
-             ), # end 2 tabpanel
+                      tabsetPanel(
+                        tabPanel("Criteria Weights", 
+                                 br(),
+                                 sidebarLayout(
+                                   sidebarPanel(
+                                     ### inputs for weights
+                                     numericInput(inputId = "REWtInput", label = "Real Estate",
+                                                  value = 0,width = "100px", min = 0.0,max = 1.0,step = 0.05), # end RE weight input
+                                     
+                                     numericInput(inputId = "LandlordWtInput", label = "Landlord Policy",
+                                                  value = 0, width = "100px", min = 0.0,max = 1.0,step = 0.05),
+                                     
+                                     numericInput(inputId = "LandlordWtInput", label = "Landlord Policy",
+                                                       value = 0, width = "100px", min = 0.0,max = 1.0,step = 0.05),
+                                     
+                                     numericInput(inputId = "ElectrictyWtInput", label = "Electricity",
+                                                          value = 0,width = "100px", min = 0.0, max = 1.0, step = 0.05),
+                                     
+                                     numericInput(inputId = "CO2WtInput", label = "CO2 Emissions",
+                                                  value = 0,width = "100px", min = 0.0, max = 1.0,step = 0.05),# end Co2 weight input
+                                     
+                                     numericInput(inputId = "ClimateRiskWtInput", label = "Climate Risk",
+                                                  value = 0,width = "100px", min = 0.0, max = 1.0, step = 0.05), # end climate risk weight input
+                                     numericInput(inputId = "HealthWtInput", label = "Health Impacts",value = 0,
+                                                             width = "100px",min = 0.0,max = 1.0, step = 0.05), # end health impact weight input
+                                     numericInput(inputId = "SolarIrrWtInput", label = "Solar IRR",
+                                                          value = 0, width = "100px", min = 0.0, max = 1.0, step = 0.05), # end irr input
+                                     actionButton(inputId = "EnterWeights", label = "Calculate")),
+                                 
+                        mainPanel(
+                          verbatimTextOutput(outputId = "wt_sum"))
+                        ) # tab 1end main panel
+                        ), # end 2 tabpanel
+                        tabPanel("Data Table", 
+                                 dataTableOutput(outputId = "wt_table"))
+                      ) # end tabset panel
+             ), # end tab panel
+             
              tabPanel("Map Visualization"
                       ), # end map viz tab Panel 
              
@@ -117,7 +104,6 @@ ui <- fluidPage(
   
   ) ### end nav bar
 ) ### end fluidPage
-
 
 
 # Define server logic 
@@ -147,25 +133,43 @@ server <- function(input, output) {
     sum(weight_inputs())
   })
 
-
-  ########################################################################
-
-### method 2 with observe and creating table   
-  # Update reactive values when weights are changed
   
   # Render the weighted criteria table
   output$wt_table <- renderDataTable({
     req(input$EnterWeights)
-    unwt_criteria_shp
-
+    wt_criteria <-criteria_unweighted %>%
+      mutate(wt_real_estate = real_estate_score * input$REWtInput,
+             wt_landlord_policy = landlord_score * input$LandlordWtInput,
+             wt_electricity = electricity_score * input$ElectrictyWtInput,
+             wt_co2 = co2_score * input$CO2WtInput,
+             wt_climate_risk = climate_risk_score * input$ClimateRiskWtInput,
+             wt_health_impacts = health_impact_score * input$HealthWtInput,
+             wt_solar_irr = financial_score * input$SolarIrrWtInput) %>% 
+      select(!c(ends_with("_score")))
+             
+  
   })
   ####################################################################
 
   ## output weighted criteria into bar chart
   output$wt_criteria_chart <- renderPlot({
-    wt_data <- wt_criteria()
     req(input$EnterWeights)
-        ggplot(data = wt_criteria(), aes(y = reorder(msa, total), x = wt_criteria_score)) + 
+    wt_criteria <-criteria_unweighted %>%
+      mutate(wt_real_estate = real_estate_score * input$REWtInput,
+             wt_landlord_policy = landlord_score * input$LandlordWtInput,
+             wt_electricity = electricity_score * input$ElectrictyWtInput,
+             wt_co2 = co2_score * input$CO2WtInput,
+             wt_climate_risk = climate_risk_score * input$ClimateRiskWtInput,
+             wt_health_impacts = health_impact_score * input$HealthWtInput,
+             wt_solar_irr = financial_score * input$SolarIrrWtInput) %>% 
+      select(!c(ends_with("_score"))) %>% 
+      pivot_longer(cols = starts_with("wt"), # selecting criteria cols
+                   names_to = "criteria",
+                   values_to = "wt_criteria_score") %>% 
+      group_by(cbsa)
+    
+    
+        ggplot(data = wt_criteria, aes(y = reorder(msa, total), x = wt_criteria_score)) + 
           geom_col(aes(fill = criteria)) +
           labs(x = "Total Score",y = " ", title = " ") +
       theme_bw() +
