@@ -16,7 +16,8 @@ library(shinydashboard)
 
 real_estate_metrics2021 <- read_sheet("https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=519968233")
 criteria_unweighted <- read_sheet("https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=1307699202", sheet = "FINAL_total_score") %>% 
-  mutate(cbsa = as.character(cbsa))
+  mutate(cbsa = as.character(cbsa)) %>% 
+  filter(city_msa != "Portland")
 
 #census_api_key("ebab921b3002df9b71881ad6c426f34281ce0e11", overwrite = "TRUE")
 
@@ -49,8 +50,7 @@ ui <- fluidPage(
                       ) ### end mainPanel
              ), # ## END of tab 1
              ### tab2
-             tabPanel("Coefficient Customization",
-                      
+             tabPanel("Input Weights",
                       tabsetPanel(
                         tabPanel("Criteria Weights", 
                                  br(),
@@ -59,10 +59,7 @@ ui <- fluidPage(
                                      ### inputs for weights
                                      numericInput(inputId = "REWtInput", label = "Real Estate",
                                                   value = 0,width = "100px", min = 0.0,max = 1.0,step = 0.05), # end RE weight input
-                                     
-                                     numericInput(inputId = "LandlordWtInput", label = "Landlord Policy",
-                                                  value = 0, width = "100px", min = 0.0,max = 1.0,step = 0.05),
-                                     
+              
                                      numericInput(inputId = "LandlordWtInput", label = "Landlord Policy",
                                                        value = 0, width = "100px", min = 0.0,max = 1.0,step = 0.05),
                                      
@@ -81,11 +78,13 @@ ui <- fluidPage(
                                      actionButton(inputId = "EnterWeights", label = "Calculate")),
                                  
                         mainPanel(
-                          verbatimTextOutput(outputId = "wt_sum"))
+                          verbatimTextOutput(outputId = "wt_sum"), 
+                          plotOutput(outputId = "wt_criteria_chart"))
                         ) # tab 1end main panel
                         ), # end 2 tabpanel
-                        tabPanel("Data Table", 
-                                 dataTableOutput(outputId = "wt_table"))
+                        
+                        tabPanel("Data Table", dataTableOutput("wt_table_test"))
+                                 
                       ) # end tabset panel
              ), # end tab panel
              
@@ -127,13 +126,13 @@ server <- function(input, output) {
                              input$HealthWtInput,
                              input$SolarIrrWtInput)  
   })
+
   
   # text to show weight sum
   output$wt_sum <- renderPrint({
     sum(weight_inputs())
   })
 
-  
   # Render the weighted criteria table
   output$wt_table <- renderDataTable({
     req(input$EnterWeights)
@@ -146,37 +145,44 @@ server <- function(input, output) {
              wt_health_impacts = health_impact_score * input$HealthWtInput,
              wt_solar_irr = financial_score * input$SolarIrrWtInput) %>% 
       select(!c(ends_with("_score")))
-             
   
   })
   ####################################################################
 
-  ## output weighted criteria into bar chart
-  output$wt_criteria_chart <- renderPlot({
-    req(input$EnterWeights)
-    wt_criteria <-criteria_unweighted %>%
-      mutate(wt_real_estate = real_estate_score * input$REWtInput,
-             wt_landlord_policy = landlord_score * input$LandlordWtInput,
-             wt_electricity = electricity_score * input$ElectrictyWtInput,
-             wt_co2 = co2_score * input$CO2WtInput,
-             wt_climate_risk = climate_risk_score * input$ClimateRiskWtInput,
-             wt_health_impacts = health_impact_score * input$HealthWtInput,
-             wt_solar_irr = financial_score * input$SolarIrrWtInput) %>% 
+  # function to calculate weighted criteria
+  calculate_wt_criteria <- function(data, weights = weight_inputs()){
+    wt_criteria <- data %>% mutate(wt_real_estate = real_estate_score * input$REWtInput,
+                    wt_landlord_policy = landlord_score * input$LandlordWtInput,
+                    wt_electricity = electricity_score * input$ElectrictyWtInput,
+                    wt_co2 = co2_score * input$CO2WtInput,
+                    wt_climate_risk = climate_risk_score * input$ClimateRiskWtInput,
+                    wt_health_impacts = health_impact_score * input$HealthWtInput,
+                    wt_solar_irr = financial_score * input$SolarIrrWtInput) %>% 
       select(!c(ends_with("_score"))) %>% 
       pivot_longer(cols = starts_with("wt"), # selecting criteria cols
                    names_to = "criteria",
-                   values_to = "wt_criteria_score") %>% 
-      group_by(cbsa)
+                   values_to = "wt_criteria_score")  
+    return(wt_criteria)
+  }
+  
+  output$wt_table_test <- renderDataTable({
+    req(input$EnterWeights)
+    calculate_wt_criteria(criteria_unweighted)
+  })
     
     
-        ggplot(data = wt_criteria, aes(y = reorder(msa, total), x = wt_criteria_score)) + 
+  ## output weighted criteria into bar chart
+  output$wt_criteria_chart <- renderPlot({
+    req(input$EnterWeights)
+    wt_data <- calculate_wt_criteria(criteria_unweighted)
+      ggplot(data = wt_data, aes(y = city_msa, x = wt_criteria_score)) + 
           geom_col(aes(fill = criteria)) +
           labs(x = "Total Score",y = " ", title = " ") +
-      theme_bw() +
-      guides(fill=guide_legend(title="Criteria (weighted)")) +
-      scale_fill_manual(values = c("palevioletred1", "orange",  "gold", "#44AA99", "dodgerblue4", "#6495ED", "#BC80BD"),
-                        labels=c('Climate Risk', 'CO2 Emissions', 'Electricity', "Solar IRR", "Real Estate", "Health Impacts", "Landlord Policy")) +
-      scale_x_continuous(limits = c(0, 1.0), expand = c(0,0), breaks=seq(0, 01.0, 0.1))
+        theme_bw() +
+        guides(fill=guide_legend(title="Criteria (weighted)")) +
+        scale_fill_manual(values = c("palevioletred1", "orange",  "gold", "#44AA99", "dodgerblue4", "#6495ED", "#BC80BD"),
+                          labels=c('Climate Risk', 'CO2 Emissions', 'Electricity', "Solar IRR", "Real Estate", "Health Impacts", "Landlord Policy")) +
+        scale_x_continuous(limits = c(0, 1.0), expand = c(0,0), breaks=seq(0, 01.0, 0.1))
 
   })
   
