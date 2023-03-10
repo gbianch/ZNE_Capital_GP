@@ -17,7 +17,8 @@ library(shinydashboard)
 real_estate_metrics2021 <- read_sheet("https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=519968233")
 criteria_unweighted <- read_sheet("https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=1307699202", sheet = "FINAL_total_score") %>% 
   mutate(cbsa = as.character(cbsa)) %>% 
-  filter(city_msa != "Portland")
+  filter(city_msa != "Portland") %>% 
+  rename(student_tot_score = final_tot_students)
 
 #census_api_key("ebab921b3002df9b71881ad6c426f34281ce0e11", overwrite = "TRUE")
 
@@ -133,22 +134,8 @@ server <- function(input, output) {
     sum(weight_inputs())
   })
 
-  # Render the weighted criteria table
-  output$wt_table <- renderDataTable({
-    req(input$EnterWeights)
-    wt_criteria <-criteria_unweighted %>%
-      mutate(wt_real_estate = real_estate_score * input$REWtInput,
-             wt_landlord_policy = landlord_score * input$LandlordWtInput,
-             wt_electricity = electricity_score * input$ElectrictyWtInput,
-             wt_co2 = co2_score * input$CO2WtInput,
-             wt_climate_risk = climate_risk_score * input$ClimateRiskWtInput,
-             wt_health_impacts = health_impact_score * input$HealthWtInput,
-             wt_solar_irr = financial_score * input$SolarIrrWtInput) %>% 
-      select(!c(ends_with("_score")))
-  
-  })
-  ####################################################################
 
+  
   # function to calculate weighted criteria
   calculate_wt_criteria <- function(data, weights = weight_inputs()){
     wt_criteria <- data %>% mutate(wt_real_estate = real_estate_score * input$REWtInput,
@@ -159,31 +146,44 @@ server <- function(input, output) {
                     wt_health_impacts = health_impact_score * input$HealthWtInput,
                     wt_solar_irr = financial_score * input$SolarIrrWtInput) %>% 
       select(!c(ends_with("_score"))) %>% 
-      pivot_longer(cols = starts_with("wt"), # selecting criteria cols
-                   names_to = "criteria",
-                   values_to = "wt_criteria_score")  
+      rename("Real Estate"="wt_real_estate",
+             "Landlord Policy"="wt_landlord_policy",
+             "Electricity"="wt_electricity", 
+             "CO2 Emissions"="wt_co2",
+             "Climate Risk"="wt_climate_risk",
+             "Health Impacts"="wt_health_impacts", 
+             "Solar IRR"="wt_solar_irr") 
+
     return(wt_criteria)
   }
   
   output$wt_table_test <- renderDataTable({
     req(input$EnterWeights)
-    calculate_wt_criteria(criteria_unweighted)
+    df<-calculate_wt_criteria(criteria_unweighted) %>%
+      group_by(cbsa) 
+      #df$total<-rowSums(df[,4:10], na.rm=TRUE))
   })
-    
-    
+  
+
+  
   ## output weighted criteria into bar chart
   output$wt_criteria_chart <- renderPlot({
     req(input$EnterWeights)
-    wt_data <- calculate_wt_criteria(criteria_unweighted)
+    wt_data <- calculate_wt_criteria(criteria_unweighted) %>% 
+      pivot_longer(cols = 4:10, # selecting criteria cols
+                   names_to = "criteria",
+                   values_to = "wt_criteria_score")  %>% 
+      group_by(cbsa) 
+      #str_replace_all(rep_str)
+      
       ggplot(data = wt_data, aes(y = city_msa, x = wt_criteria_score)) + 
           geom_col(aes(fill = criteria)) +
           labs(x = "Total Score",y = " ", title = " ") +
         theme_bw() +
         guides(fill=guide_legend(title="Criteria (weighted)")) +
-        scale_fill_manual(values = c("palevioletred1", "orange",  "gold", "#44AA99", "dodgerblue4", "#6495ED", "#BC80BD"),
-                          labels=c('Climate Risk', 'CO2 Emissions', 'Electricity', "Solar IRR", "Real Estate", "Health Impacts", "Landlord Policy")) +
+       scale_fill_manual(values = c("palevioletred1","orange",  "gold", "#44AA99", "dodgerblue4", "#BC80BD", "#6495ED"),
+      breaks = c("Climate Risk", "CO2 Emissions", "Electricity", "Solar IRR", "Real Estate", "Landlord Policy", "Health Impacts")) +
         scale_x_continuous(limits = c(0, 1.0), expand = c(0,0), breaks=seq(0, 01.0, 0.1))
-
   })
   
   output$unwt_criteria_tmap <- renderTmap({
