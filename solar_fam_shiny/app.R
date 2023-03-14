@@ -44,9 +44,11 @@ ui <- fluidPage(
              theme = bs_theme(bootswatch = "cerulean", primary = "#8aab57"),
              ### tab 1 - background
              tabPanel("Landing Page", 
-                      mainPanel("Background Info",
-                        h5("Sixth level title"),
-                        h4("model flow chart"),  ### Add model image here
+                      mainPanel(
+                        h5("Importance & Objectives"),
+                        h5("Background"),
+                        h5("Model Flow Chart"),  ### Add model image here
+                        p("Visualization of methodology to calculate investment favorability score for each metropolitan area. Seven criteria comprise the total score, with each weighted by a value given preferences."),
                         div(img(src = "model_no_weights.jpg",  width = "800", height = "400"), style="text-align: center;")
                       ) ### end mainPanel
              ), # ## END of tab 1
@@ -76,16 +78,16 @@ ui <- fluidPage(
                                                              width = "100px",min = 0.0,max = 1.0, step = 0.05), # end health impact weight input
                                      numericInput(inputId = "SolarIrrWtInput", label = "Solar IRR",
                                                           value = 0, width = "100px", min = 0.0, max = 1.0, step = 0.05), # end irr input
-                                     actionButton(inputId = "EnterWeights", label = "Calculate")),
-                                 
-                        mainPanel(
-                          verbatimTextOutput(outputId = "wt_sum"), 
-                          plotOutput(outputId = "wt_criteria_chart"))
-                        ) # tab 1end main panel
-                        ), # end 2 tabpanel
-                        
+                                     actionButton(inputId = "EnterWeights", label = "Calculate")), # end sidebar panel
+                                   
+                                   mainPanel(
+                                     verbatimTextOutput(outputId = "wt_sum"), 
+                                     h5("Ranking the top metropolitan areas based on solar PV investment favorability"),
+                                     plotOutput(outputId = "wt_criteria_chart"))
+                                   ) # end sidebar layout
+                                 ), # end tab panel
                         tabPanel("Data Table", dataTableOutput("wt_table_test"))
-                                 
+                             
                       ) # end tabset panel
              ), # end tab panel
              
@@ -100,9 +102,36 @@ ui <- fluidPage(
                       # help text under input box
                       helpText("Format example: 100000"),
                       actionButton(inputId = "EnterPopulation", label = "Enter Population Size")
-             ) # end tab panel
-  
+             ), # end tab panel
+             tabPanel("About the Team",
+                      p("Bren gp info"),
+                      fluidRow(
+                        column(4,
+                               h5("Cam Audras")),
+                        column(4,
+                               h5("Grace Bianchi")),
+                        column(4,
+                               h5("Julia"))
+                      ),
+                      fluidRow(column(6,
+                                       h5("Grace Bianchi")
+                                      )
+                               ) # end fluid row
+                     ), # end team background tab
+             
+  navbarMenu("About the Data", icon = icon("info-circle"),
+             tabPanel("Demographic",
+                      h5("Population Growth"),
+                         p("background"),
+                      h5("Household Income"),
+                      h5("Employment Rates"),
+                      h5("House Prices")
+             ), # end About the Data tab pan
+             tabPanel("Climate Risk"),
+             tabPanel("reOpt Model")
+  ) # end navbar menu with more icon
   ) ### end nav bar
+  
 ) ### end fluidPage
 
 
@@ -128,12 +157,10 @@ server <- function(input, output) {
                              input$SolarIrrWtInput)  
   })
 
-  
   # text to show weight sum
   output$wt_sum <- renderPrint({
     sum(weight_inputs())
   })
-
 
   
   # function to calculate weighted criteria
@@ -159,12 +186,10 @@ server <- function(input, output) {
   
   output$wt_table_test <- renderDataTable({
     req(input$EnterWeights)
-    df<-calculate_wt_criteria(criteria_unweighted) %>%
-      group_by(cbsa) 
-      #df$total<-rowSums(df[,4:10], na.rm=TRUE))
+    df<-calculate_wt_criteria(criteria_unweighted) 
+      
   })
   
-
   
   ## output weighted criteria into bar chart
   output$wt_criteria_chart <- renderPlot({
@@ -172,13 +197,12 @@ server <- function(input, output) {
     wt_data <- calculate_wt_criteria(criteria_unweighted) %>% 
       pivot_longer(cols = 4:10, # selecting criteria cols
                    names_to = "criteria",
-                   values_to = "wt_criteria_score")  %>% 
-      group_by(cbsa) 
-      #str_replace_all(rep_str)
+                   values_to = "wt_criteria_score")  
+   # unite("msa_state", city_msa:state, sep = ", ")
       
-      ggplot(data = wt_data, aes(y = city_msa, x = wt_criteria_score)) + 
-          geom_col(aes(fill = criteria)) +
-          labs(x = "Total Score",y = " ", title = " ") +
+      ggplot(data = wt_data, aes(y = reorder(city_msa, wt_criteria_score, FUN=sum), x = wt_criteria_score)) + 
+        geom_col(aes(fill = criteria)) +
+        labs(x = "Total Score", y = " ", title = " ") +
         theme_bw() +
         guides(fill=guide_legend(title="Criteria (weighted)")) +
        scale_fill_manual(values = c("palevioletred1","orange",  "gold", "#44AA99", "dodgerblue4", "#BC80BD", "#6495ED"),
