@@ -49,7 +49,7 @@ ui <- fluidPage(
                         h5("Background"),
                         h5("Model Flow Chart"),  ### Add model image here
                         p("Visualization of methodology to calculate investment favorability score for each metropolitan area. Seven criteria comprise the total score, with each weighted by a value given preferences."),
-                        div(img(src = "model_no_weights.jpg",  width = "800", height = "400"), style="text-align: center;")
+                        div(img(src = "model_no_weights.jpg",  width = "1000", height = "500"), style="text-align: center;")
                       ) ### end mainPanel
              ), # ## END of tab 1
              ### tab2
@@ -61,23 +61,23 @@ ui <- fluidPage(
                                    sidebarPanel(
                                      ### inputs for weights
                                      numericInput(inputId = "REWtInput", label = "Real Estate",
-                                                  value = 0,width = "100px", min = 0.0,max = 1.0,step = 0.05), # end RE weight input
+                                                  value = 0,width = "150px", min = 0.0,max = 1.0,step = 0.05), # end RE weight input
               
                                      numericInput(inputId = "LandlordWtInput", label = "Landlord Policy",
-                                                       value = 0, width = "100px", min = 0.0,max = 1.0,step = 0.05),
+                                                       value = 0, width = "150px", min = 0.0,max = 1.0,step = 0.05),
                                      
                                      numericInput(inputId = "ElectrictyWtInput", label = "Electricity",
-                                                          value = 0,width = "100px", min = 0.0, max = 1.0, step = 0.05),
+                                                          value = 0,width = "150px", min = 0.0, max = 1.0, step = 0.05),
                                      
                                      numericInput(inputId = "CO2WtInput", label = "CO2 Emissions",
-                                                  value = 0,width = "100px", min = 0.0, max = 1.0,step = 0.05),# end Co2 weight input
+                                                  value = 0,width = "150px", min = 0.0, max = 1.0,step = 0.05),# end Co2 weight input
                                      
                                      numericInput(inputId = "ClimateRiskWtInput", label = "Climate Risk",
-                                                  value = 0,width = "100px", min = 0.0, max = 1.0, step = 0.05), # end climate risk weight input
+                                                  value = 0,width = "150px", min = 0.0, max = 1.0, step = 0.05), # end climate risk weight input
                                      numericInput(inputId = "HealthWtInput", label = "Health Impacts",value = 0,
-                                                             width = "100px",min = 0.0,max = 1.0, step = 0.05), # end health impact weight input
+                                                             width = "150px",min = 0.0,max = 1.0, step = 0.05), # end health impact weight input
                                      numericInput(inputId = "SolarIrrWtInput", label = "Solar IRR",
-                                                          value = 0, width = "100px", min = 0.0, max = 1.0, step = 0.05), # end irr input
+                                                          value = 0, width = "150px", min = 0.0, max = 1.0, step = 0.05), # end irr input
                                      actionButton(inputId = "EnterWeights", label = "Calculate")), # end sidebar panel
                                    
                                    mainPanel(
@@ -197,10 +197,10 @@ server <- function(input, output) {
     wt_data <- calculate_wt_criteria(criteria_unweighted) %>% 
       pivot_longer(cols = 4:10, # selecting criteria cols
                    names_to = "criteria",
-                   values_to = "wt_criteria_score")  
-   # unite("msa_state", city_msa:state, sep = ", ")
+                   values_to = "wt_criteria_score")  %>% 
+   unite("msa_state", city_msa:state, sep = ", ")
       
-      ggplot(data = wt_data, aes(y = reorder(city_msa, wt_criteria_score, FUN=sum), x = wt_criteria_score)) + 
+      ggplot(data = wt_data, aes(y = reorder(msa_state, wt_criteria_score, FUN=sum), x = wt_criteria_score)) + 
         geom_col(aes(fill = criteria)) +
         labs(x = "Total Score", y = " ", title = " ") +
         theme_bw() +
