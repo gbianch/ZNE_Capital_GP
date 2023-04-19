@@ -2,9 +2,7 @@
 title: "Total Score"
 author: "Grace Bianchi"
 date: '2022-11-14'
-output: 
-  html_document: 
-    fig_caption: yes
+output: pdf_document
 editor_options: 
   chunk_output_type: console
 ---
@@ -41,9 +39,11 @@ criteria_all <- real_estate_score_data %>%
   inner_join(reopt_data) %>% 
   inner_join(climate_risk_data) # combine all criteria scores into one dataframe
 
+### Cleaning up the data order and column names
 # reorder columns
 col_order <-c("cbsa", "city_msa", "state", "real_estate_score", "landlord_score", "normalized_annual_renewable", "normalized_irr", "inverted_n_total_co2",  "inverted_n_health_emissions_cost", "normalized_inverted_climate_risk")
 
+# rename columns
 criteria_all <- criteria_all[, col_order] %>% 
   rename(financial_score = normalized_irr,
          co2_score = inverted_n_total_co2,
@@ -54,7 +54,6 @@ criteria_all <- criteria_all[, col_order] %>%
          landlord_score = as.numeric(landlord_score)) 
 
 ```
-
 
 
 ```{r FINAL student weights}
@@ -108,14 +107,12 @@ for (i in 1:nrow(criteria_all)) {
 criteria_all <- criteria_all %>% 
   mutate_if(is.numeric,
             round,
-            digits = 5)
+            digits = 5) 
 
-weighted <- criteria_all %>% 
-  t(t(criteria_all[4:10])*criteria_weights_students) %>% 
-  as.data.frame(row.names=criteria_all$cbsa) 
-
- calculate_wt_criteria <- function(data, weights){
+# creating a function with criteria data and weight inputs
+calculate_wt_criteria <- function(data, weights){
     wt_criteria <- data %>%
+      # multiply each criteria by respective weight
       mutate(wt_real_estate = real_estate_score * weights[1],
              wt_landlord_policy = landlord_score * weights[2], 
              wt_solar_irr = financial_score * weights[3],
@@ -123,38 +120,73 @@ weighted <- criteria_all %>%
              wt_health_impacts = health_impact_score * weights[5],
              wt_electricity = electricity_score * weights[6],
              wt_climate_risk = climate_risk_score * weights[7]) %>% 
+      # select weighted columns and rename them
       select(!c(ends_with("_score"))) %>%
+      # create column for investment score
+      mutate(investment_score = 0) %>%
+      # for loop to sum weighted columns for each row
+      mutate(investment_score = apply(.[, 4:10], 1, sum)) %>% 
       rename("Real Estate"="wt_real_estate",
              "Landlord Policy"="wt_landlord_policy",
-             "Electricity"="wt_electricity", 
-             "CO2 Emissions"="wt_co2",
-             "Climate Risk"="wt_climate_risk",
+             "Electricity Production"="wt_electricity", 
+             "CO2 Emission Reduction"="wt_co2",
+             "Climate Risk Avoided"="wt_climate_risk",
              "Health Impacts"="wt_health_impacts", 
              "Solar IRR"="wt_solar_irr") 
  }
 
- wt_client <- calculate_wt_criteria(criteria_all, client_weights)  %>%  
-  unite("msa_state", city_msa:state, sep = ", ")
    
- 
 #sheet_write(criteria_all, ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "FINAL_total_score")
 ```
 
 ### Data Visualization- barcharts
 
-```{r client data viz}
-
-
-# read in cbsa data with full names
-client_score_tidy <- wt_client %>% 
+```{r tidy data}
+# client weights
+wt_criteria_client <- calculate_wt_criteria(criteria_all, client_weights)  %>%  
+  unite("msa_state", city_msa:state, sep = ", ")
+  
+client_score_tidy <- wt_criteria_client  %>% 
   pivot_longer(cols = c(3:9), # selecting criteria cols
                names_to = "criteria",
                values_to = "wt_criteria_score") %>% 
  filter(msa_state != "Portland, ME")  # removing portland (negative number)
 
+# equity weights
+wt_criteria_equity <- calculate_wt_criteria(criteria_all, criteria_weights_students) %>% 
+  unite("msa_state", city_msa:state, sep = ", ")
 
-tiff(filename = "wt_criteria_client_chart.tiff",width = 8, height = 6, units = "in", res = 300, pointsize = 12)
-p1 <- ggplot(data = client_score_tidy, aes(y = reorder(msa_state,  wt_criteria_score, FUN=sum), x = wt_criteria_score)) +
+# tidy data for bar chart
+equity_tidy <- wt_criteria_equity %>% 
+  pivot_longer(cols = c(3:9), # selecting criteria cols
+               names_to = "criteria",
+               values_to = "wt_criteria_score") 
+```
+
+
+```{r client data viz}
+tiff(filename = "client_criteria_barchart.tiff",width = 8, height = 6, units = "in", res = 300, pointsize = 12)
+ggplot(data = client_score_tidy, aes(y = reorder(msa_state,  wt_criteria_score, FUN=sum), x = wt_criteria_score)) +
+    geom_col(aes(fill = factor(criteria, levels = c("Climate Risk Avoided", "CO2 Emission Reduction", "Electricity Production", "Solar IRR", "Real Estate", "Landlord Policy", "Health Impacts")))) +
+  theme_bw() +
+  labs(x = "Total Score",
+       y = " ",
+       title = "") +
+  guides(fill=guide_legend(title="Criteria (weighted)")) +
+   scale_fill_manual(values = c("palevioletred1","orange",  "gold", "#44AA99", "dodgerblue4", "#BC80BD", "#6495ED"),
+      breaks = c("Climate Risk Avoided", "CO2 Emission Reduction", "Electricity Production", "Solar IRR", "Real Estate", "Landlord Policy", "Health Impacts")) +
+        scale_x_continuous(limits = c(0, 0.8), expand = c(0,0), breaks=seq(0, 0.8, 0.1)) 
+#+ theme(legend.position = "none")
+dev.off()
+```
+
+```{r student data viz}
+# ## read in weighted criteria sheet
+# student_weighted_criteria <- read_sheet(ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "wtd_criteria_stud") 
+
+
+#tiff(filename = "wt_criteria_student_chart.tiff", width = 8, height = 6, units = "in", res = 300)
+ ggplot(data = equity_tidy, aes(y = reorder(msa_state, wt_criteria_score, FUN=sum), x = wt_criteria_score)) + 
     geom_col(aes(fill = criteria)) +
   labs(x = "Total Score",
        y = " ",
@@ -162,46 +194,16 @@ p1 <- ggplot(data = client_score_tidy, aes(y = reorder(msa_state,  wt_criteria_s
   theme_bw() +
   guides(fill=guide_legend(title="Criteria (weighted)")) +
    scale_fill_manual(values = c("palevioletred1","orange",  "gold", "#44AA99", "dodgerblue4", "#BC80BD", "#6495ED"),
-      breaks = c("Climate Risk", "CO2 Emissions", "Electricity", "Solar IRR", "Real Estate", "Landlord Policy", "Health Impacts")) +
-        scale_x_continuous(limits = c(0, 1.0), expand = c(0,0), breaks=seq(0, 01.0, 0.1)) +
-  theme(legend.position = "none")
-dev.off()
-```
-
-```{r student data viz}
-## read in weighted criteria sheet
-student_weighted_criteria <- read_sheet(ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "wtd_criteria_stud") 
-
-equity_wt <- calculate_wt_criteria(criteria_all, criteria_weights_students) %>% 
-  unite("msa_state", city_msa:state, sep = ", ")
-
-
-# read in cbsa data with full names
-score_tidy2 <- equity_wt %>% 
-  pivot_longer(cols = c(3:9), # selecting criteria cols
-               names_to = "criteria",
-               values_to = "wt_criteria_score") 
-
-tiff(filename = "wt_criteria_student_chart.tiff", width = 8, height = 6, units = "in", res = 300)
-
-p2 <- ggplot(data = score_tidy2, aes(y = reorder(msa_state, wt_criteria_score, FUN=sum), x = wt_criteria_score)) + 
-    geom_col(aes(fill = criteria)) +
-  labs(x = "Total Score",
-       y = " ",
-       title = "") +
-  theme_bw() +
-  guides(fill=guide_legend(title="Criteria (weighted)")) +
-   scale_fill_manual(values = c("palevioletred1", "orange",  "gold", "#44AA99", "dodgerblue4", "#6495ED", "#BC80BD"),
-                     labels=c('Climate Risk', 'CO2 Emissions', 'Electricity', "Solar IRR", "Real Estate", "Health Impacts", "Landlord Policy")) +
+      breaks = c("Climate Risk Avoidance", "CO2 Abatement", "Electricity Production", "Solar IRR", "Real Estate", "Landlord Policy", "Health Impacts")) +
   scale_x_continuous(limits = c(0, 1.0), expand = c(0,0), breaks=seq(0, 1.0, 0.1)) 
 
-dev.off()
+#dev.off()
 ```
 
 ```{r}
 library(patchwork)
 
-
+# combined visual of client and equity score results
 p1 <- ggplot(data = client_score_tidy, aes(y = reorder(msa_state,  wt_criteria_score, FUN=sum), x = wt_criteria_score)) +
     geom_col(aes(fill = criteria)) +
   labs(x = "Total Score",
@@ -210,29 +212,36 @@ p1 <- ggplot(data = client_score_tidy, aes(y = reorder(msa_state,  wt_criteria_s
   theme_bw() +
   guides(fill=guide_legend(title="Criteria (weighted)")) +
    scale_fill_manual(values = c("palevioletred1","orange",  "gold", "#44AA99", "dodgerblue4", "#BC80BD", "#6495ED"),
-      breaks = c("Climate Risk", "CO2 Emissions", "Electricity", "Solar IRR", "Real Estate", "Landlord Policy", "Health Impacts")) +
-        scale_x_continuous(limits = c(0, 1.0), expand = c(0,0), breaks=seq(0, 01.0, 0.1)) +
-  theme(legend.position = "none")
+      breaks = c("Climate Risk Avoidance", "CO2 Abatement", "Electricity Production", "Solar IRR", "Real Estate", "Landlord Policy", "Health Impacts")) +
+        scale_x_continuous(limits = c(0, 0.8), expand = c(0,0), breaks=seq(0, 0.8, 0.1)) +
+  theme(legend.position = "none") +
+  theme(axis.title.y = element_text(size = 20))
 
-p2 <- ggplot(data = score_tidy2, aes(y = reorder(msa_state, wt_criteria_score, FUN=sum), x = wt_criteria_score)) + 
+
+
+p2 <- ggplot(data = equity_tidy, aes(y = reorder(msa_state, wt_criteria_score, FUN=sum), x = wt_criteria_score)) + 
     geom_col(aes(fill = criteria)) +
   labs(x = "Total Score",
        y = " ",
        title = "") +
   theme_bw() +
+  guides(shape = guide_legend(override.aes = list(size = 0.5))) +
   guides(fill=guide_legend(title="Criteria (weighted)")) +
-   scale_fill_manual(values = c("palevioletred1", "orange",  "gold", "#44AA99", "dodgerblue4", "#6495ED", "#BC80BD"),
-                     labels=c('Climate Risk', 'CO2 Emissions', 'Electricity', "Solar IRR", "Real Estate", "Health Impacts", "Landlord Policy")) +
-  scale_x_continuous(limits = c(0, 1.0), expand = c(0,0), breaks=seq(0, 1.0, 0.1)) 
-
-tiff(filename = "data_vz.tiff", width=12, units = "in", res=100)
-p3<- p1+p2 + plot_layout(widths = c(6, 6)) +
-  plot_annotation(tag_levels = 'A',
-                  caption = "Figure 1. Ranked metropolitan areas (n=29) based on investment favorability for rooftop solar PV on mutlifamily houses. Areas were scored using six criteria, each given a respective weight given stakeholder priorities. \n Each criteria is comprised of indicator metrics using data from the U.S.  Census Bureau and NREL's reOpt tool. Graph A represents a real estate investor stakeholder who prioritizes climate risk due to long-term investments. \n B represents a equity-focused stakeholder who prioritizes markets that reduce CO2 emissions and associated health impacts.")
-dev.off()
+   scale_fill_manual(values = c("palevioletred1","orange",  "gold", "#44AA99", "dodgerblue4", "#BC80BD", "#6495ED"),
+      breaks = c("Climate Risk Avoidance", "CO2 Abatement", "Electricity Production", "Solar IRR", "Real Estate", "Landlord Policy", "Health Impacts")) +
+        scale_x_continuous(limits = c(0, 0.8), expand = c(0,0), breaks=seq(0, 0.8, 0.1)) +
+    theme(axis.title.y = element_text(size = 11))
 
 
+# tiff(filename = "data_vz.tiff", width=12, units = "in", res=100)
+ p1/p2 + 
+  plot_annotation(tag_levels = 'A') & theme(plot.tag = element_text(size = 16)) 
+ ggsave("test_dim_2plots.jpeg", plot = plots, width = 6, height = 4, units = "in", dpi = 300) 
+ 
+ #rstudioapi::savePlotAsImage(file = "myplot.png",width = dev.size(units="px")[[1]],height=dev.size(units="px")[[2]])
+               
 
 ```
 
-"Figure 1. Ranked metropolitan areas (n=29) based on investment favorability for rooftop solar PV on mutlifamily houses. Areas were scored using six criteria, each given a respective weight given stakeholder priorities. Each criteria is comprised of indicator metrics using data from the U.S. Census Bureau and NREL's reOpt tool. Graph A represents a real estate investor stakeholder who prioritizes climate risk due to long-term investments. B represents a equity-focused stakeholder who values impact one 
+ 
+Figure 1. Ranked metropolitan areas (n=29) based on investment favorability for rooftop solar PV on mutlifamily houses. Areas were scored using six criteria, each given a respective weight given stakeholder priorities. Each criteria is comprised of indicator metrics using data from the U.S. Census Bureau and NREL's reOpt tool. Graph A represents a real estate investor stakeholder who prioritizes climate risk due to long-term investments. B represents a equity-focused stakeholder who values impacts on the community, emissions, and 
