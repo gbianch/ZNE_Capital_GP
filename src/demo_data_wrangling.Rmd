@@ -31,8 +31,8 @@ options(tigris_use_cache = TRUE)
 ```
 
 ### Population Growth
-All states were considered with the exception of CA, HI, and AK. Initial analysis of Metropolitan Statistical Areas (MSAs) relied on Census data of annual population estimates, in which the population had to be greater than 500,000 individuals for the purpose of attracting investors. Population change from 2020 to 2021 was calculated by $$\frac{2021 estimate- 2020 estimate}{2020 estimate} * 100$$
-MSAs with a population growth > 0.5%, were selected to gather further data on. The 0.5% growth was determined.
+
+All states were considered with the exception of CA, HI, and AK. Initial analysis of Metropolitan Statistical Areas (MSAs) relied on Census data of annual population estimates, in which the population had to be greater than 500,000 individuals for the purpose of attracting investors. Population change from 2020 to 2021 was calculated by $$\frac{2021 estimate- 2020 estimate}{2020 estimate} * 100$$ MSAs with a population growth \> 0.5%, were selected to gather further data on. The 0.5% growth was determined.
 
 Dataset: Annual Resident Population Estimates and Estimated Components of Resident Population Change for Metropolitan and Micropolitan Statistical Areas and Their Geographic Components: April 1, 2020 to July 1, 2021 (CBSA-EST2021-ALLDATA)
 
@@ -60,7 +60,6 @@ potential_MSAs <- msa_pop_2021_data %>%
 
 ```
 
-
 ```{r population growth map, eval=FALSE}
 ## optional visualization
 # read in MSA shapefiles from Census
@@ -81,7 +80,7 @@ ggplot() +
   labs(title = "Metro Areas included in this analysis", x = "", y = "")
 ```
 
-Figure 1. Population growth in Metropolitan Statistical Areas (n=29) in 2020-2021. Highlighted areas have a population > 300,000 individuals and a population growth rate greater than 0.5%. The colors of the MSAs represent incremental growth rates, in which low(green) is 0.5-1% increase, medium(blue) is 1-2% increase, and high(pink) is 2-3.5% increase. Data: U.S. Census Bureau, Population Division.
+Figure 1. Population growth in Metropolitan Statistical Areas (n=29) in 2020-2021. Highlighted areas have a population \> 300,000 individuals and a population growth rate greater than 0.5%. The colors of the MSAs represent incremental growth rates, in which low(green) is 0.5-1% increase, medium(blue) is 1-2% increase, and high(pink) is 2-3.5% increase. Data: U.S. Census Bureau, Population Division.
 
 ```{r population change visual, fig.height = 7, fig.align='center', eval = FALSE}
 # create plot of MSAs sorted grom highest population growth to lowest
@@ -92,6 +91,7 @@ ggplot(data = positive_MSA_pop_change, aes(x = pop_percent_change20_21, y = reor
 ```
 
 ### Household Income
+
 Household Median Income data was also obtained from Census data at the MSA level and amended to existing MSAs with a positive population increase. Median is a better indicator of the population than the mean income values due to the positive skew from the highest incomes.
 
 Dataset: Median Household Income (USD) INCOME IN THE PAST 12 MONTHS (IN 2021 INFLATION-ADJUSTED DOLLARS)
@@ -131,7 +131,8 @@ ggplot(MSA_house_income, aes(x = median_income, y = reorder(MSA, median_income))
 Figure 2. Median Household income of Metropolitan Statistical Areas in 2021. The green points indicate the median income value for each MSA with the margin of error presented by the bars on either side of each point. Data: U.S. Census Bureau.
 
 ### Employment Rates
-MSA monthly unemployment rates (seasonally-adjusted) were provided by The Bureau of Labor statistics in the civil labor force data at the MSA level. The average annual unemployment rates were calculated using the monthly rates from 2012 to 2020. Employment rates were calculated by dividing the number of employment / civilian labor force. The employment data for the month of January in years 2018-2021 was selected to calculate the change in employment rates over time. Year-over-Year employment growth was calculated by dividing the employment rate of the year by the previous year and subtracting one; for example, 2018 employment YoY growth = (2019 employment rate / 2018 employment rate) - 1.
+
+MSA monthly unemployment rates (seasonally-adjusted) were provided by The Bureau of Labor statistics in the civil labor force data at the MSA level. The average annual unemployment rates were calculated using the monthly rates from 2012 to 2020. Employment rates were calculated by dividing the number of employment / civilian labor force. The employment data for the month of January in years 2018-2021 was selected to calculate the change in employment rates over time. Year-over-Year employment growth was calculated by dividing the employment rate of the year by the previous year and subtracting one; for example, 2018 employment growth = (2019 employment rate / 2018 employment rate) - 1.
 
 Annual Average Employment Rates & Year-over-Year change civil labor force data from [The Bureau of Labor Statistics](https://www.bls.gov/lau/metrossa.htm)
 
@@ -172,7 +173,6 @@ potential_MSAs$employ_change <- MSA_employ_rate$avg_emp_rate
   
 ```
 
-
 ```{r employment visuals, fig.align = "center", fig.show="hold", fig.height= 7, fig.width=10, eval = FALSE}
 # visual of MSA employment rates, shows major drop during covid
 ggplot(MSA_employment, aes(x = year, y = avg_employment_rate, color = MSA)) +
@@ -193,10 +193,7 @@ ggplot(MSA_employment, aes(x = avg_emp_rate, y = reorder(MSA, avg_emp_rate))) +
 
 ```
 
-
-<https://www.bls.gov/web/metro.supp.toc.htm> <https://www.bls.gov/web/metro/metro_oty_change.htm> - significant change
-
-2021 Median Rent from https://www.huduser.gov/portal/datasets/50per.html#2021
+2021 Median Rent from <https://www.huduser.gov/portal/datasets/50per.html#2021>
 
 ```{r median rent}
 # data wrangling 2021 median rent
@@ -235,9 +232,7 @@ potential_MSAs <- potential_MSAs %>%
 
 ### House Prices
 
-Median housing prices by MSA were obtained from the Association of Realtors for 2021. 
-Copyright ©[2021] NATIONAL ASSOCIATION OF REALTORS®. All rights reserved.  Reprinted with permission.
-
+Median housing prices by MSA were obtained from the Association of Realtors for 2021. Copyright ©[2021] NATIONAL ASSOCIATION OF REALTORS®. All rights reserved. Reprinted with permission.
 
 Source: [The National Association of Realtors](https://www.nar.realtor/research-and-statistics/housing-statistics/metropolitan-median-area-prices-and-affordability)
 
@@ -259,17 +254,15 @@ potential_MSAs$house_price_2021 <- metro_house_cost_data$house_price_2021
 
 ```
 
-
 The following MSAs were not included in the housing dataset:
 
-- Augusta-Richmond County
-- Clarksville, TN-KY
-- Greeley, CO
-- Killeen, TX
-- Lubbock, TX
-- McAllen-Edinburg-Mission, TX
-- Salisbury, MD
-
+-   Augusta-Richmond County
+-   Clarksville, TN-KY
+-   Greeley, CO
+-   Killeen, TX
+-   Lubbock, TX
+-   McAllen-Edinburg-Mission, TX
+-   Salisbury, MD
 
 ### MSA data table
 
@@ -287,6 +280,7 @@ sheet_write(potential_MSAs, ss = "https://docs.google.com/spreadsheets/d/1lmTpSD
 ```
 
 ### City Data Table
+
 MSAs were split up by cities to collect utility, rent, and landlord data.
 
 ```{r MSAs seperate into cities}
@@ -298,6 +292,5 @@ msa_seperated <- potential_MSAs %>%
 
 #gs4_create("real_estate_inputs")
 sheet_write(msa_seperated, ss = "https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=0", sheet = "cities")
-
 
 ```
