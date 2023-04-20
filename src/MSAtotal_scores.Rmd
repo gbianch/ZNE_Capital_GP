@@ -2,10 +2,12 @@
 title: "Total Score"
 author: "Grace Bianchi"
 date: '2022-11-14'
-output: html_document
+output: 
+  html_document:
+    code_folding: hide
 ---
 
-```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+```{r setup, include=TRUE, warning=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 library(tidyverse)
@@ -15,7 +17,7 @@ library(dplyr)
 ```
 
 ```{r}
-# read in the data
+# read in the normalized data
 real_estate_score_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Ssmb7pUd4NFZocVp9C75SRMOV6tAJCCt0TjrCYBB8pY/edit#gid=1038418521") %>% 
   select(cbsa, real_estate_score)
 
@@ -31,7 +33,7 @@ climate_risk_data <- read_sheet("https://docs.google.com/spreadsheets/d/1HZCeNGf
 ```
 
 
-```{r read in data}
+```{r data wrangling}
 criteria_all <- real_estate_score_data %>% 
   inner_join(rental_policy_score_data)  %>% 
   inner_join(reopt_data) %>% 
@@ -49,64 +51,30 @@ criteria_all <- criteria_all[, col_order] %>%
          electricity_score = normalized_annual_renewable,
          climate_risk_score = normalized_inverted_climate_risk) %>% 
   mutate(real_estate_score = as.numeric(real_estate_score),
-         landlord_score = as.numeric(landlord_score)) 
+         landlord_score = as.numeric(landlord_score)) %>%
+  # round criteria scores
+  mutate_if(is.numeric,round, digits = 5) 
 
 ```
 
 
-```{r FINAL student weights}
-# weight criteria for students
-criteria_weights_students <- c(0.18, 0.0, 0.10, 0.19, 0.17, 0.14, 0.22)
-
-#make landlord_score column
-criteria_all <- criteria_all %>% 
-  mutate(equity_scenario_score = cbsa,
-         client_FINAL_score = cbsa) #this is just a place holder
-  
-for (i in 1:nrow(criteria_all)) {
-  cbsa_data <- c(criteria_all$real_estate_score[i],
-                criteria_all$landlord_score[i],
-                 criteria_all$financial_score[i],
-                 criteria_all$co2_score[i],
-                criteria_all$health_impact_score[i],
-                criteria_all$electricity_score[i],
-                criteria_all$climate_risk_score[i]
-                  )
-  criteria_all$equity_scenario_score[i] = weighted.mean(cbsa_data, criteria_weights_students)
-}
-
-```
-
-
-
-```{r Client FINAL WEIGHTS}
+```{r model weights}
+# weights for each criteria must be in this order
+equity_weights <- c(0.18, # real estate weight
+                    0.0, # landlord weight
+                    0.10, # financial weight
+                    0.19, # co2 emissions avoided weight
+                    0.17, # health impacts weight
+                    0.14, # electricity weight
+                    0.22) # climate risk weight
 
 client_weights <- c(0.18, 0.07, 0.11, 0.07, 0.0, 0.07, 0.50)
-
-# multiply column by respective weight and sum for total
-  
-for (i in 1:nrow(criteria_all)) {
-  cbsa_data <- c(criteria_all$real_estate_score[i],
-                criteria_all$landlord_score[i],
-                 criteria_all$financial_score[i],
-                 criteria_all$co2_score[i],
-                criteria_all$health_impact_score[i],
-                criteria_all$electricity_score[i],
-                criteria_all$climate_risk_score[i]
-                  )
-  criteria_all$client_FINAL_score[i] = weighted.mean(cbsa_data, client_weights) 
-}
-
 ```
 
+# error check so weights sum to 1
+# incorporate shiny??
 
 ```{r}
-
-criteria_all <- criteria_all %>% 
-  mutate_if(is.numeric,
-            round,
-            digits = 5) 
-
 # creating a function with criteria data and weight inputs
 calculate_wt_criteria <- function(data, weights){
     wt_criteria <- data %>%
@@ -130,10 +98,10 @@ calculate_wt_criteria <- function(data, weights){
              "CO2 Emission Reduction"="wt_co2",
              "Climate Risk Avoided"="wt_climate_risk",
              "Health Impacts"="wt_health_impacts", 
-             "Solar IRR"="wt_solar_irr") 
+             "Solar IRR"="wt_solar_irr") %>%  
+      unite("msa_state", city_msa:state, sep = ", ")
  }
 
-   
 #sheet_write(criteria_all, ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "FINAL_total_score")
 ```
 
@@ -151,7 +119,7 @@ client_score_tidy <- wt_criteria_client  %>%
  filter(msa_state != "Portland, ME")  # removing portland (negative number)
 
 # equity weights
-wt_criteria_equity <- calculate_wt_criteria(criteria_all, criteria_weights_students) %>% 
+wt_criteria_equity <- calculate_wt_criteria(criteria_all, equity_weights) %>% 
   unite("msa_state", city_msa:state, sep = ", ")
 
 # tidy data for bar chart
