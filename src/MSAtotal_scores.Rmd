@@ -2,9 +2,7 @@
 title: "Total Score"
 author: "Grace Bianchi"
 date: '2022-11-14'
-output: pdf_document
-editor_options: 
-  chunk_output_type: console
+output: html_document
 ---
 
 ```{r setup, include=FALSE, warning=FALSE, message=FALSE}
