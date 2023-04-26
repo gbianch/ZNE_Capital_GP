@@ -13,12 +13,10 @@ library(sf) # map states and US
 library(shinydashboard)
 
 
-
 real_estate_metrics2021 <- read_sheet("https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=519968233")
-criteria_unweighted <- read_sheet("https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=1307699202", sheet = "FINAL_total_score") %>% 
+criteria_unweighted <- read_sheet("https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=1307699202", sheet = "unwt_criteria_scores") %>% 
   mutate(cbsa = as.character(cbsa)) %>% 
-  filter(city_msa != "Portland") %>% 
-  rename(student_tot_score = final_tot_students)
+  filter(city_msa != "Portland") 
 
 #census_api_key("ebab921b3002df9b71881ad6c426f34281ce0e11", overwrite = "TRUE")
 
