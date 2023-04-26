@@ -82,88 +82,104 @@ payload <- list(
 
 ```
 
+
 ```{r}
+```
+
+
+```{r}
+
+## open EI api
 ## open EI api
 openEI_api_key <- "rU6MEqhK9OJ7obAnmcbzYhpFOenfBM5Q8GF0yJFA"
 
-openEI_start <- "https://api.openei.org/utility_rates?version=latest&format=json&sector=Residential&detail=full&approved=true&address=26900&"
+openEI_start <- "https://api.openei.org/utility_rates?version=latest&format=json&sector=Residential&detail=full&approved=true&"
 # Set the URL for the job submission endpoint
 
-openEI_url <- paste0(openEI_start, "api_key=", openEI_api_key)
-
+openEI_url <- paste0(openEI_start, "address=", zipcodes, "&api_key=", openEI_api_key)
 EIresponse <- GET(openEI_url)
 content <- content(EIresponse, "text")
 json <- fromJSON(content)
 
-EIoutput_df <- data.frame(
+ # extract utility rate information
+EIutility_df <- list(
   label = json$items$label,
   utility = json$items$utility,
-  approved = json$items$approved,
   rate_name = json$items$name)
-
-  # extract utility rate information
-rates <- json$items$rate
-  # print utility rate information for the city
-  cat(city, "utility rates:\n")
-  for (rate in rates) {
-    cat("  - Name:", rate$name, "\n")
-    cat("    Description:", rate$description, "\n")
-    cat("    Value:", rate$value, "\n")
-
-if (http_type(response)$status_code == 200) {
-  data <- fromJSON(content(EIresponse, "text"), simplifyDataFrame = TRUE)
-  
-  # Extract relevant information from the data
-  utility_name <- data$items[[1]]$utility_name
-  utility_type <- data$items[[1]]$sector
-  rate_name <- data$items[[1]]$name
-  start_date <- data$items[[1]]$start_date
-  end_date <- data$items[[1]]$end_date
-  rate_structure <- data$items[[1]]$rate_structure
-  energy_rate <- data$items[[1]]$rate
-  demand_rate <- data$items[[1]]$demand_rate
-  
-  # Print the results
-  cat(sprintf("Utility name: %s\n", utility_name))
-  cat(sprintf("Utility type: %s\n", utility_type))
-  cat(sprintf("Rate name: %s\n", rate_name))
-  cat(sprintf("Start date: %s\n", start_date))
-  cat(sprintf("End date: %s\n", end_date))
-  cat(sprintf("Rate structure: %s\n", rate_structure))
-  cat(sprintf("Energy rate: %s\n", energy_rate))
-  cat(sprintf("Demand rate: %s\n", demand_rate))
-} else {
-  cat(sprintf("Failed to retrieve data (status code %s)", http_type(response)$status_code))
-}
-
-
 ```
 
 ```{r}
 
-# list of cities
-cities <- c("San Francisco", "Los Angeles", "New York")
+openEI_start_url <- "https://api.openei.org/utility_rates?version=latest&format=json&sector=Residential&detail=full&approved=true&address="
+openEI_api_end <- "&api_key=rU6MEqhK9OJ7obAnmcbzYhpFOenfBM5Q8GF0yJFA"
 
-# loop through each city and get utility rate information
-for (city in cities) {
-  # construct URL with city name as parameter
-  url <- paste0("https://api.openei.org/utility_rates?version=3&format=json&address=", gsub(" ", "+", city))
-  # make API call
-  response <- GET(url)
-  # extract content and parse as JSON
-  content <- content(response, "text")
-  json <- fromJSON(content)
-  # extract utility rate information
-  rates <- json$items$rate
-  # print utility rate information for the city
-  cat(city, "utility rates:\n")
-  for (rate in rates) {
-    cat("  - Name:", rate$name, "\n")
-    cat("    Description:", rate$description, "\n")
-    cat("    Value:", rate$value, "\n")
+### Function w for loop
+get_utility_data <- function(zipcodes) {
+  # Create an empty list to store the resulting data frames
+  utility_info <- list()
+  # get data for each zipcode in vector
+  for (zipcode in zipcodes) {
+    openEI_start_url <- "https://api.openei.org/utility_rates?version=latest&format=json&sector=Residential&detail=full&approved=true&address="
+    openEI_api_end <- "&api_key=rU6MEqhK9OJ7obAnmcbzYhpFOenfBM5Q8GF0yJFA"
+    
+    openEI_url <- paste0(openEI_start_url, zipcode, openEI_api_end)
+    response <- GET(openEI_url)
+    # extract content and parse as JSON
+    content <- content(response, "text")
+    json <- fromJSON(content)
+    
+    # create a data frame with the extracted utility info
+    utility_df <- data.frame(
+      "zipcode" = rep(zipcode, each = nrow(json$items$label)),
+      "label" = json$items$label,
+      "utility" = json$items$utility,
+      "rate_name" = json$items$name
+    )
+    
+    # append the resulting data frame to the list
+    utility_info[[length(utility_info) + 1]] <- utility_df
   }
+  
+  # combine the resulting data frames into a single data frame
+  combined_utility_info <- do.call(rbind, utility_info)
+  
+  return(combined_utility_info)
 }
+
+utility_info_zips <- get_utility_data(zipcodes = zipcodes)
+
 ```
+
+```{r}
+zipcodes <- c("46033", "93105", "90404")
+## functiion wiith out for loop
+get_zip_utility <- function(zipcode){
+  openEI_start_url <- "https://api.openei.org/utility_rates?version=latest&format=json&sector=Residential&detail=full&approved=true&address="
+openEI_api_end <- "&api_key=rU6MEqhK9OJ7obAnmcbzYhpFOenfBM5Q8GF0yJFA"
+zipcode=zipcode
+
+  openEI_url <- paste0(openEI_start_url, zipcode, openEI_api_end)
+  response <- GET(openEI_url)
+  # extract content and parse as JSON
+  content <- content(EIresponse, "text")
+  json <- fromJSON(content)
+  
+  utility_df <- data.frame(
+  # repeat zipcode in each row for each utility observation
+  "zipcode" = rep(zipcode, each=nrow(json$items$label)),
+  "label" = json$items$label,
+    "utility" = json$items$utility,
+    "rate_name" = json$items$name)
+
+}
+
+test <- get_zip_utility("46033")
+utility_info <- pmap(list(zipcode=zipcodes), get_zip_utility)
+
+utilitu_info = as.data.frame(utility_info)
+```
+
+
 
 ```{r STUFF TO WORK ON}
 
