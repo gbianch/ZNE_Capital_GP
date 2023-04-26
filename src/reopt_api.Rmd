@@ -25,15 +25,19 @@ job_url <- paste0(url, "?api_key=", api_key)
 ```{r}
 # create list of default inputs for each city
 inputs <- list(
-  ModuleType = "Premium",
-  DCACratio = 1.35,
-  System_losses = 5,
-  FederalIncentive = 30
+  offtaker_tax_pct = 0, # host effective tax rate
+  co2_cost_us_dollars_per_tonne = 185,
+  module_type = 1,
+  dc_ac_ratio = 1.35,
+  losses = 0.05,
+  federal_itc_pct = 0.3,
+  location = "roof", # restrict projects to roof
+  can_net_meter = TRUE
+  
 )
 ```
 
 ```{r}
-
 # Set the payload for the job submission request
 payload <- list(
   "Scenario" = list(
@@ -44,36 +48,23 @@ payload <- list(
       "land_acres" = 1.0,
       "PV" = list(
         "installed_cost_us_dollars_per_kw" = 2000.0,
-        "tilt" = 34.579,
-        "degradation_pct" = 0.005,
-        "macrs_option_years" = 5,
+        "federal_rebate_us_dollars_per_kw" = 350.0,
+        # changes from default
+        "module_type" = 1,
+        "dc_ac_ratio" = 1.35,
+        "losses" = 0.05,
         "federal_itc_pct" = 0.3,
-        "module_type" = 0,
-        "array_type" = 1,
-        "om_cost_us_dollars_per_kw" = 16.0,
-        "macrs_itc_reduction" = 0.5,
-        "azimuth" = 180.0,
-        "federal_rebate_us_dollars_per_kw" = 350.0
+        "location" = "roof", # restrict projects to roof
+        "can_net_meter" = TRUE
       ),
       "LoadProfile" = list(
         "doe_reference_name" = "MidriseApartment",
         "annual_kwh" = 10000000.0,
         "city" = "LosAngeles"
       ),
-      "Storage" = list(
-        "total_rebate_per_kw" = 100.0,
-        "macrs_option_years" = 5,
-        "can_grid_charge" = TRUE,
-        "macrs_bonus_pct" = 0.4,
-        "macrs_itc_reduction" = 0.5,
-        "total_itc_pct" = 0,
-        "installed_cost_us_dollars_per_kw" = 1000.0,
-        "installed_cost_us_dollars_per_kwh" = 500.0,
-        "replace_cost_us_dollars_per_kw" = 460.0,
-        "replace_cost_us_dollars_per_kwh" = 230.0
-      ),
       "ElectricTariff" = list(
-        "urdb_label" = "5ed6c1a15457a3367add15ae"
+        "urdb_label" = "5ed6c1a15457a3367add15ae",
+        "add_tou_energy_rates_to_urdb_rate" = TRUE
       ),
       "Financial" = list(
         "escalation_pct" = 0.026,
@@ -88,6 +79,95 @@ payload <- list(
   )
 )
 
+
+```
+
+```{r}
+## open EI api
+openEI_api_key <- "rU6MEqhK9OJ7obAnmcbzYhpFOenfBM5Q8GF0yJFA"
+
+openEI_start <- "https://api.openei.org/utility_rates?version=latest&format=json&sector=Residential&detail=full&approved=true&address=26900&"
+# Set the URL for the job submission endpoint
+
+openEI_url <- paste0(openEI_start, "api_key=", openEI_api_key)
+
+EIresponse <- GET(openEI_url)
+content <- content(EIresponse, "text")
+json <- fromJSON(content)
+
+EIoutput_df <- data.frame(
+  label = json$items$label,
+  utility = json$items$utility,
+  approved = json$items$approved,
+  rate_name = json$items$name)
+
+  # extract utility rate information
+rates <- json$items$rate
+  # print utility rate information for the city
+  cat(city, "utility rates:\n")
+  for (rate in rates) {
+    cat("  - Name:", rate$name, "\n")
+    cat("    Description:", rate$description, "\n")
+    cat("    Value:", rate$value, "\n")
+
+if (http_type(response)$status_code == 200) {
+  data <- fromJSON(content(EIresponse, "text"), simplifyDataFrame = TRUE)
+  
+  # Extract relevant information from the data
+  utility_name <- data$items[[1]]$utility_name
+  utility_type <- data$items[[1]]$sector
+  rate_name <- data$items[[1]]$name
+  start_date <- data$items[[1]]$start_date
+  end_date <- data$items[[1]]$end_date
+  rate_structure <- data$items[[1]]$rate_structure
+  energy_rate <- data$items[[1]]$rate
+  demand_rate <- data$items[[1]]$demand_rate
+  
+  # Print the results
+  cat(sprintf("Utility name: %s\n", utility_name))
+  cat(sprintf("Utility type: %s\n", utility_type))
+  cat(sprintf("Rate name: %s\n", rate_name))
+  cat(sprintf("Start date: %s\n", start_date))
+  cat(sprintf("End date: %s\n", end_date))
+  cat(sprintf("Rate structure: %s\n", rate_structure))
+  cat(sprintf("Energy rate: %s\n", energy_rate))
+  cat(sprintf("Demand rate: %s\n", demand_rate))
+} else {
+  cat(sprintf("Failed to retrieve data (status code %s)", http_type(response)$status_code))
+}
+
+
+```
+
+```{r}
+
+# list of cities
+cities <- c("San Francisco", "Los Angeles", "New York")
+
+# loop through each city and get utility rate information
+for (city in cities) {
+  # construct URL with city name as parameter
+  url <- paste0("https://api.openei.org/utility_rates?version=3&format=json&address=", gsub(" ", "+", city))
+  # make API call
+  response <- GET(url)
+  # extract content and parse as JSON
+  content <- content(response, "text")
+  json <- fromJSON(content)
+  # extract utility rate information
+  rates <- json$items$rate
+  # print utility rate information for the city
+  cat(city, "utility rates:\n")
+  for (rate in rates) {
+    cat("  - Name:", rate$name, "\n")
+    cat("    Description:", rate$description, "\n")
+    cat("    Value:", rate$value, "\n")
+  }
+}
+```
+
+```{r STUFF TO WORK ON}
+
+net_metering_limit_kw # by state
 
 ```
 
@@ -110,6 +190,7 @@ run_uuid <- output$run_uuid
 
  
 ```{r}
+## GET RESULTS FROM REOPT
 results_url <- paste0("https://developer.nrel.gov/api/reopt/stable/job/", run_uuid, "/results")
 
 # Send the GET request to retrieve the results
@@ -138,11 +219,7 @@ api_version <- jsonlite::fromJSON(version_url) # retrieved
 
 ```{r}
 
-## energy goals
-#cost_savings and clean_energy
-## inputs not default 
-host_eff <- 0
-scc = 185 
+
 
 #PV & wind space available:  ❌ Land only ✅ Roofspace only ❌ Land & roofspace
 
