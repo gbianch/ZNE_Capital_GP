@@ -28,6 +28,7 @@ library(tigris) # imports Census shape files
 library(sf)
 options(tigris_class = "sf")
 options(tigris_use_cache = TRUE)
+library(openxlsx)
 ```
 
 ### Population Growth
@@ -141,14 +142,14 @@ Monthly unemployment rates (seasonally-adjusted) from [The Bureau of Labor Stati
 ```{r, employment data wrangling}
 unemployment_data <- read_csv(here("data", "raw", "civil_labor_force_BLS.csv")) %>% #rename col headers
   clean_names() %>% 
-  rename(cbsa = x3) %>% 
-  rename(area = x4) %>% 
-  rename(year = x5) %>% 
-  rename(month = x6) %>% 
-  rename(civilian_labor_force = x7) %>% 
-  rename(employment = x8) %>% 
-  rename(unemployment = x9) %>% 
-  rename(unemployment_rate = x10) %>% 
+  rename(cbsa = x3,
+         area = x4,
+         year = x5,
+         month = x6,
+         civilian_labor_force = x7,
+         employment = x8,
+         unemployment = x9,
+         unemployment_rate = x10)%>% 
   mutate(employment_rate = (employment/civilian_labor_force)*100) # calculate
 
 # data wrangling, only selecting data for potential MSAs
@@ -251,22 +252,19 @@ metro_house_cost_data <- read_csv(here("data","raw", "metro_home_costs", "metro-
         house_price_2021 = ifelse(cbsa == "32580", "259000", house_price_2021))
 
 potential_MSAs$house_price_2021 <- metro_house_cost_data$house_price_2021 
+  
 
 ```
 
-The following MSAs were not included in the housing dataset:
 
--   Augusta-Richmond County
--   Clarksville, TN-KY
--   Greeley, CO
--   Killeen, TX
--   Lubbock, TX
--   McAllen-Edinburg-Mission, TX
--   Salisbury, MD
 
 ### MSA data table
 
 ```{r data table}
+# clean up names
+potential_MSAs <- potential_MSAs %>% 
+  rename(pop_growth = pop_percent_change20_21)
+
 # table seperated by MSAs
 datatable(potential_MSAs, extensions = 'Buttons', options = list(
     dom = 'Bfrtip',
@@ -274,23 +272,10 @@ datatable(potential_MSAs, extensions = 'Buttons', options = list(
   )
 )
 
+write.xlsx(potential_MSAs, here("data/intermediate/demographic.xlsx"), sheetName = "Sheet1")
+
 #gs4_create("real_estate_inputs")
 #output data into google sheet
-sheet_write(potential_MSAs, ss = "https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=0", sheet = "MSA_demographics")
+#sheet_write(potential_MSAs, ss = "https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=0", sheet = "MSA_demographics")
 ```
 
-### City Data Table
-
-MSAs were split up by cities to collect utility, rent, and landlord data.
-
-```{r MSAs seperate into cities}
-#  split up MSAs into cities to collect utility, rent, and landlord data.
-msa_seperated <- potential_MSAs %>% 
-  separate_rows(MSA, sep = "-") %>% 
-  rename(city = MSA) %>% # separate MSA cities into their own columns
-  filter(! city == "")
-
-#gs4_create("real_estate_inputs")
-sheet_write(msa_seperated, ss = "https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=0", sheet = "cities")
-
-```
