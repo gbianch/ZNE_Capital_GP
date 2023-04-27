@@ -13,7 +13,8 @@ library(sf) # map states and US
 library(shinydashboard)
 
 
-real_estate_metrics2021 <- read_sheet("https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=519968233")
+real_estate_metrics2021 <- read_sheet("https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit#gid=519968233") %>% 
+  rename(pop_estimate = popestimate2021)
 criteria_unweighted <- read_sheet("https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=1307699202", sheet = "unwt_criteria_scores") %>% 
   mutate(cbsa = as.character(cbsa)) %>% 
   filter(city_msa != "Portland") 
@@ -51,9 +52,19 @@ ui <- fluidPage(
                       ) ### end mainPanel
              ), # ## END of tab 1
              ### tab2
-             tabPanel("Input Weights",
+             tabPanel("Test the Model",
                       tabsetPanel(
-                        tabPanel("Criteria Weights", 
+                        tabPanel("Step 1: Demographic Preferences",
+                                 sidebarLayout(
+                                   sidebarPanel(
+                                      sliderInput("slider2", label = h3("Population Size Range"), 
+                                                  min = 200000,  max = 5000000, step = 100000, sep = ",",
+                                                  value = c(300000, 600000))),
+                                         
+                                   mainPanel(dataTableOutput(outputId = "pop_test_table"))
+                                 )), # end step 1 tab panel
+                        tabPanel("Step 2: Landlord Inputs"), # end step 2 tab panel
+                        tabPanel("Step 3. Criteria Weights", 
                                  br(),
                                  sidebarLayout(
                                    sidebarPanel(
@@ -84,23 +95,14 @@ ui <- fluidPage(
                                      plotOutput(outputId = "wt_criteria_chart"))
                                    ) # end sidebar layout
                                  ), # end tab panel
-                        tabPanel("Data Table", dataTableOutput("wt_table_test"))
+                        tabPanel("Results:Data Table", 
+                                 mainPanel(dataTableOutput("wt_table_test"))),
+                        tabPanel("Results: Map")
                              
                       ) # end tabset panel
              ), # end tab panel
              
-             tabPanel("Map Visualization"
-                      ), # end map viz tab Panel 
-             
-             tabPanel("Demographic Data",
-                      textInput(inputId = "PopulationSizeMin",
-                                label = "Minimum Population Size",
-                                value = "300000",
-                                width = "100px"), # end population input)
-                      # help text under input box
-                      helpText("Format example: 100000"),
-                      actionButton(inputId = "EnterPopulation", label = "Enter Population Size")
-             ), # end tab panel
+             tabPanel("x"), # end tab panel
              tabPanel("About the Team",
                       p("Bren gp info"),
                       fluidRow(
@@ -109,25 +111,26 @@ ui <- fluidPage(
                         column(4,
                                h5("Grace Bianchi")),
                         column(4,
-                               h5("Julia"))
+                               h5("Julia Bickford"))
                       ),
                       fluidRow(column(6,
-                                       h5("Grace Bianchi")
-                                      )
+                                       h5("Virginia Pan")),
+                               column(6,
+                                      h5("Naomi Raal"))
                                ) # end fluid row
                      ), # end team background tab
-             
-  navbarMenu("About the Data", icon = icon("info-circle"),
-             tabPanel("Demographic",
-                      h5("Population Growth"),
-                         p("background"),
-                      h5("Household Income"),
-                      h5("Employment Rates"),
-                      h5("House Prices")
-             ), # end About the Data tab pan
-             tabPanel("Climate Risk"),
-             tabPanel("reOpt Model")
-  ) # end navbar menu with more icon
+             tabPanel("Data Exploration", icon = icon("info-circle"),
+                      tabsetPanel(
+                        tabPanel("Demographics",
+                                 h5("Population Growth"),
+                                 p("background"),
+                                 h5("Household Income"),
+                                 h5("Employment Rates"),
+                                 h5("House Prices")),# end demographics tab panel
+                        tabPanel("Climate Risk"),
+                        tabPanel("reOpt Model")
+                      )),
+
   ) ### end nav bar
   
 ) ### end fluidPage
@@ -136,14 +139,17 @@ ui <- fluidPage(
 # Define server logic 
 server <- function(input, output) {
   
-  # change min population input to numeric class
-  pop_size_input <- reactive({ as.numeric(input$PopulationSizeMin)})
+  range_input <- reactive({  
+  seq(input[['slider2']][1],
+      input[['slider2']][2])
+  })
   
   # output data table based on minimum population size input
   output$pop_test_table <- renderDataTable({
-    req(input$EnterPopulation) # require action button
+    #req(input$EnterPopulation) # require action button
+    rangeInput <- range_input()
     pop_size_list <- real_estate_metrics2021 %>% 
-      filter(popestimate2021 > pop_size_input())
+      filter(pop_estimate %in% range_input())
   })
 
   weight_inputs <- reactive({
