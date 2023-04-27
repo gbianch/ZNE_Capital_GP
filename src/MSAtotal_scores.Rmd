@@ -94,11 +94,11 @@ calculate_wt_criteria <- function(data, weights){
       mutate(investment_score = apply(.[, 4:10], 1, sum)) %>% 
       rename("Real Estate"="wt_real_estate",
              "Landlord Policy"="wt_landlord_policy",
-             "Electricity Production"="wt_electricity", 
-             "CO2 Emission Reduction"="wt_co2",
+             "Electricity Generation"="wt_electricity", 
+             "Avoided CO2 Emissions"="wt_co2",
              "Climate Risk Avoided"="wt_climate_risk",
-             "Health Impacts"="wt_health_impacts", 
-             "Solar IRR"="wt_solar_irr") %>%  
+             "Avoided Health Costs"="wt_health_impacts", 
+             "Solar Financials"="wt_solar_irr") %>%  
       unite("msa_state", city_msa:state, sep = ", ")
  }
 
@@ -109,8 +109,7 @@ calculate_wt_criteria <- function(data, weights){
 
 ```{r tidy data}
 # client weights
-wt_criteria_client <- calculate_wt_criteria(criteria_all, client_weights)  %>%  
-  unite("msa_state", city_msa:state, sep = ", ")
+wt_criteria_client <- calculate_wt_criteria(criteria_all, client_weights) 
   
 client_score_tidy <- wt_criteria_client  %>% 
   pivot_longer(cols = c(3:9), # selecting criteria cols
@@ -119,8 +118,7 @@ client_score_tidy <- wt_criteria_client  %>%
  filter(msa_state != "Portland, ME")  # removing portland (negative number)
 
 # equity weights
-wt_criteria_equity <- calculate_wt_criteria(criteria_all, equity_weights) %>% 
-  unite("msa_state", city_msa:state, sep = ", ")
+wt_criteria_equity <- calculate_wt_criteria(criteria_all, equity_weights) 
 
 # tidy data for bar chart
 equity_tidy <- wt_criteria_equity %>% 
@@ -133,14 +131,14 @@ equity_tidy <- wt_criteria_equity %>%
 ```{r client data viz}
 tiff(filename = "client_criteria_barchart.tiff",width = 8, height = 6, units = "in", res = 300, pointsize = 12)
 ggplot(data = client_score_tidy, aes(y = reorder(msa_state,  wt_criteria_score, FUN=sum), x = wt_criteria_score)) +
-    geom_col(aes(fill = factor(criteria, levels = c("Climate Risk Avoided", "CO2 Emission Reduction", "Electricity Production", "Solar IRR", "Real Estate", "Landlord Policy", "Health Impacts")))) +
+    geom_col(aes(fill = factor(criteria, levels = c("Climate Risk Avoided", "Avoided CO2 Emissions", "Electricity Generation", "Solar Financials", "Real Estate", "Landlord Policy", "Avoided Health Costs")))) +
   theme_bw() +
-  labs(x = "Total Score",
+  labs(x = "Investment Favorabliity Score",
        y = " ",
        title = "") +
   guides(fill=guide_legend(title="Criteria (weighted)")) +
    scale_fill_manual(values = c("palevioletred1","orange",  "gold", "#44AA99", "dodgerblue4", "#BC80BD", "#6495ED"),
-      breaks = c("Climate Risk Avoided", "CO2 Emission Reduction", "Electricity Production", "Solar IRR", "Real Estate", "Landlord Policy", "Health Impacts")) +
+      breaks = c("Climate Risk Avoided", "Avoided CO2 Emissions", "Electricity Generation", "Solar Financials", "Real Estate", "Landlord Policy", "Avoided Health Costs")) +
         scale_x_continuous(limits = c(0, 0.8), expand = c(0,0), breaks=seq(0, 0.8, 0.1)) 
 #+ theme(legend.position = "none")
 dev.off()
@@ -153,20 +151,20 @@ dev.off()
 
 #tiff(filename = "wt_criteria_student_chart.tiff", width = 8, height = 6, units = "in", res = 300)
  ggplot(data = equity_tidy, aes(y = reorder(msa_state, wt_criteria_score, FUN=sum), x = wt_criteria_score)) + 
-    geom_col(aes(fill = criteria)) +
-  labs(x = "Total Score",
+  geom_col(aes(fill = factor(criteria, levels = c("Climate Risk Avoided", "Avoided CO2 Emissions", "Electricity Generation", "Solar Financials", "Real Estate", "Landlord Policy", "Avoided Health Costs")))) +
+  labs(x =  "Investment Favorabliity Score",
        y = " ",
        title = "") +
   theme_bw() +
   guides(fill=guide_legend(title="Criteria (weighted)")) +
    scale_fill_manual(values = c("palevioletred1","orange",  "gold", "#44AA99", "dodgerblue4", "#BC80BD", "#6495ED"),
-      breaks = c("Climate Risk Avoidance", "CO2 Abatement", "Electricity Production", "Solar IRR", "Real Estate", "Landlord Policy", "Health Impacts")) +
-  scale_x_continuous(limits = c(0, 1.0), expand = c(0,0), breaks=seq(0, 1.0, 0.1)) 
+      breaks = c("Climate Risk Avoided", "Avoided CO2 Emissions", "Electricity Generation", "Solar Financials", "Real Estate", "Landlord Policy", "Avoided Health Costs")) +
+  scale_x_continuous(limits = c(0, 0.8), expand = c(0,0), breaks=seq(0, 0.8, 0.1)) 
 
 #dev.off()
 ```
 
-```{r}
+```{r COMBINED BAR CHARTS}
 library(patchwork)
 
 # combined visual of client and equity score results
@@ -209,5 +207,3 @@ p2 <- ggplot(data = equity_tidy, aes(y = reorder(msa_state, wt_criteria_score, F
 
 ```
 
- 
-Figure 1. Ranked metropolitan areas (n=29) based on investment favorability for rooftop solar PV on mutlifamily houses. Areas were scored using six criteria, each given a respective weight given stakeholder priorities. Each criteria is comprised of indicator metrics using data from the U.S. Census Bureau and NREL's reOpt tool. Graph A represents a real estate investor stakeholder who prioritizes climate risk due to long-term investments. B represents a equity-focused stakeholder who values impacts on the community, emissions, and 
