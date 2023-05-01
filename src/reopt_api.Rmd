@@ -12,16 +12,77 @@ library(RJSONIO)
 library(jsonlite)
 ```
 
+### Obtain MSA zip code information
 ```{r}
-# Set your API key
-api_key <- "GZtZAUcX97VchjrLAeeN3amg2pslaO3hbtCQgXBl"
+token <- "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6ImNmMmU0Yzg1ZWZlMDNiYTkxNTA4YzdlNWJiYjE1NjVkNzIyNjg4MzgwYTE4OWNjNmJkOWRjNjFiZWUyZjIwYzg0ZmJjNmZkOTc0MDg4YzRmIn0.eyJhdWQiOiI2IiwianRpIjoiY2YyZTRjODVlZmUwM2JhOTE1MDhjN2U1YmJiMTU2NWQ3MjI2ODgzODBhMTg5Y2M2YmQ5ZGM2MWJlZTJmMjBjODRmYmM2ZmQ5NzQwODhjNGYiLCJpYXQiOjE2ODI0ODQyOTYsIm5iZiI6MTY4MjQ4NDI5NiwiZXhwIjoxOTk4MTAzNDk2LCJzdWIiOiI0ODUyMyIsInNjb3BlcyI6W119.G7NL2Khpo602p_fzk6EiAZ0-KdXsVW-IO9mUqwHem0YFLaTQZezotmLqXmbcTi7BxRzc8UHNYBw415CCzKo81w"
 
-# Set the URL for the job submission endpoint
-url <- "https://developer.nrel.gov/api/reopt/stable/job"
+# cbsa-ziip data
+cbsa_url <- "https://www.huduser.gov/hudapi/public/usps?type=8&query=All"
 
-job_url <- paste0(url, "?api_key=", api_key)
+# zip-cbsa : type3
+zip_url <- "https://www.huduser.gov/hudapi/public/usps?type=3&query=All"
+
+# set the authorization header
+headers <- add_headers("Authorization" = paste("Bearer", token))
+
+# Send the GET request to retrieve the results
+cbsa_response <- GET(url = cbsa_url,add_headers("Authorization" = paste("Bearer", token)))
+
+# Extract the response content as JSON and convert it to a list
+response_content <- content(cbsa_response, as="text")
+response_cbsa <- fromJSON(response_content)
+
+# make data frame
+cbsa_city_data <- data.frame("geoid"= response_cbsa$data$results$geoid,
+                             "cbsa"= response_cbsa$data$results$cbsa,
+                            "city"= response_cbsa$data$results$city)
+
+zip_response <- GET(url = zip_url ,add_headers("Authorization" = paste("Bearer", token)))
+# Extract the response content as JSON and convert it to a list
+response_zip_content <- content(zip_response, as="text")
+response_list <- fromJSON(response_zip_content)
+
+
+zip_data <- data.frame("geoid"= response_list$data$results$geoid,
+                            "zipcode"= response_list$data$results$zip,
+                             "state"= response_list$data$results$state)
+# combine data sets
+zip_cbsa_data <- cbsa_city_data %>% 
+  right_join(zip_data)
+  
 ```
 
+```{r polulation estimates}
+api_key <- "ebab921b3002df9b71881ad6c426f34281ce0e11"
+# Add key to .Renviron
+Sys.setenv(CENSUS_KEY="ebab921b3002df9b71881ad6c426f34281ce0e11")
+# Reload .Renviron
+readRenviron("~/.Renviron")
+# Check to see that the expected key is output in your R console
+Sys.getenv("CENSUS_KEY")
+
+host <- "https://api.census.gov/data"
+year <- "2021"
+pop_est_stem <- "pep/population"
+
+job_end <- "acs/acs1?get=NAME,B01001_001E&for=metropolitan%20statistical%20area/micropolitan%20statistical%20area:*&key="
+
+version_url <- file.path(host, year, job_end)
+pop_list <- fromJSON(version_url) %>% # retrieved cbsa numbers, msa names, and some value??
+  row_to_names(1) %>% clean_names() %>% 
+  as.data.frame() %>% 
+  rename("msa"= name,
+                             "cbsa" = metropolitan_statistical_area_micropolitan_statistical_area,
+                             "pop_esta"= b01001_001e)
+
+msa_zip_pop_est_data <- pop_list %>% 
+  left_join(cbsa_city_data) %>% 
+  inner_join(zip_data)
+
+
+```
+
+# reopt inputs
 ```{r}
 # create list of default inputs for each city
 inputs <- list(
@@ -37,6 +98,7 @@ inputs <- list(
 )
 ```
 
+# Set the payload for the job submission request for reopt
 ```{r}
 # Set the payload for the job submission request
 payload <- list(
@@ -45,15 +107,14 @@ payload <- list(
       "longitude" = -118.1164613,
       "latitude" = 34.5794343,
       "roof_squarefeet" = 5000.0,
-      "land_acres" = 1.0,
       "PV" = list(
         "installed_cost_us_dollars_per_kw" = 2000.0,
         "federal_rebate_us_dollars_per_kw" = 350.0,
         # changes from default
         "module_type" = 1,
-        "dc_ac_ratio" = 1.35,
-        "losses" = 0.05,
-        "federal_itc_pct" = 0.3,
+        "dc_ac_ratio" = 1.35, # changed default
+        "losses" = 0.05,   # changed default
+        "federal_itc_pct" = 0.3,  # changed default
         "location" = "roof", # restrict projects to roof
         "can_net_meter" = TRUE
       ),
@@ -83,76 +144,38 @@ payload <- list(
 ```
 
 
+## OpenEI 
 ```{r}
-```
-
-
-```{r}
-
-## open EI api
 ## open EI api
 openEI_api_key <- "rU6MEqhK9OJ7obAnmcbzYhpFOenfBM5Q8GF0yJFA"
 
-openEI_start <- "https://api.openei.org/utility_rates?version=latest&format=json&sector=Residential&detail=full&approved=true&"
+openEI_start <- "https://api.openei.org/utility_rates?version=latest&format=json&sector=Residential&detail=full&approved=true&sort_select=effectiveDate&direction=desc&"
 # Set the URL for the job submission endpoint
 
-openEI_url <- paste0(openEI_start, "address=", zipcodes, "&api_key=", openEI_api_key)
+
+openEI_url <- paste0(openEI_start, "address=", "46033", "&api_key=", openEI_api_key)
 EIresponse <- GET(openEI_url)
+# extract contents
 content <- content(EIresponse, "text")
-json <- fromJSON(content)
+utility_data <- fromJSON(content)
 
  # extract utility rate information
 EIutility_df <- list(
-  label = json$items$label,
-  utility = json$items$utility,
-  rate_name = json$items$name)
-```
+  start_date = utility_data$items$startdate,
+  #revisions = utility_data$items$revisions,
+  label = utility_data$items$label,
+  utility = utility_data$items$utility,
+  rate_name = utility_data$items$name)
 
-```{r}
+startdates <- EIutility_df$start_date
+start_dates_rev <- lapply(startdates, function(x) as.Date(x/86400, origin="1970-01-01"))
 
-openEI_start_url <- "https://api.openei.org/utility_rates?version=latest&format=json&sector=Residential&detail=full&approved=true&address="
-openEI_api_end <- "&api_key=rU6MEqhK9OJ7obAnmcbzYhpFOenfBM5Q8GF0yJFA"
-
-### Function w for loop
-get_utility_data <- function(zipcodes) {
-  # Create an empty list to store the resulting data frames
-  utility_info <- list()
-  # get data for each zipcode in vector
-  for (zipcode in zipcodes) {
-    openEI_start_url <- "https://api.openei.org/utility_rates?version=latest&format=json&sector=Residential&detail=full&approved=true&address="
-    openEI_api_end <- "&api_key=rU6MEqhK9OJ7obAnmcbzYhpFOenfBM5Q8GF0yJFA"
-    
-    openEI_url <- paste0(openEI_start_url, zipcode, openEI_api_end)
-    response <- GET(openEI_url)
-    # extract content and parse as JSON
-    content <- content(response, "text")
-    json <- fromJSON(content)
-    
-    # create a data frame with the extracted utility info
-    utility_df <- data.frame(
-      "zipcode" = rep(zipcode, each = nrow(json$items$label)),
-      "label" = json$items$label,
-      "utility" = json$items$utility,
-      "rate_name" = json$items$name
-    )
-    
-    # append the resulting data frame to the list
-    utility_info[[length(utility_info) + 1]] <- utility_df
-  }
-  
-  # combine the resulting data frames into a single data frame
-  combined_utility_info <- do.call(rbind, utility_info)
-  
-  return(combined_utility_info)
-}
-
-utility_info_zips <- get_utility_data(zipcodes = zipcodes)
 
 ```
 
+
 ```{r}
-zipcodes <- c("46033", "93105", "90404")
-## functiion wiith out for loop
+## function to select the most recent utiilty rate information for a given area code
 get_zip_utility <- function(zipcode){
   openEI_start_url <- "https://api.openei.org/utility_rates?version=latest&format=json&sector=Residential&detail=full&approved=true&address="
 openEI_api_end <- "&api_key=rU6MEqhK9OJ7obAnmcbzYhpFOenfBM5Q8GF0yJFA"
@@ -167,16 +190,41 @@ zipcode=zipcode
   utility_df <- data.frame(
   # repeat zipcode in each row for each utility observation
   "zipcode" = rep(zipcode, each=nrow(json$items$label)),
+  "start_date" = utility_data$items$startdate,
   "label" = json$items$label,
     "utility" = json$items$utility,
-    "rate_name" = json$items$name)
+    "rate_name" = json$items$name) 
+  
+  # Find index of row with most recent start date value
+  max_index <- which.max(utility_df$start_date) 
+
+# Extract row with greatest seconds value
+  max_row <- utility_df[max_index, ]
+  
 
 }
 
-test <- get_zip_utility("46033")
-utility_info <- pmap(list(zipcode=zipcodes), get_zip_utility)
+test <- get_zip_utility(46033) %>% 
+     mutate(start_date = as.Date(start_date/86400, origin="1970-01-01"))
 
-utilitu_info = as.data.frame(utility_info)
+```
+
+```{r}
+# Define a vector of zip codes
+zipcodes <- c("90210", "10001", "60601", "90245", "90001", "90250", "90260", "90278", "90501", "90502")
+
+# Initialize an empty list to store the results
+utility_list <- list()
+
+# Loop through each zip code and call the get_zip_utility function
+for (zipcode in zipcodes) {
+  utility_data <- get_zip_utility(zipcode)
+  utility_list[[zipcode]] <- utility_data
+}
+
+# Combine the results into a single data frame
+utility_df <- do.call(rbind, utility_list)
+
 ```
 
 
@@ -184,7 +232,18 @@ utilitu_info = as.data.frame(utility_info)
 ```{r STUFF TO WORK ON}
 
 net_metering_limit_kw # by state
+```
 
+### Reopt API
+
+```{r}
+# Set your API key
+api_key <- "GZtZAUcX97VchjrLAeeN3amg2pslaO3hbtCQgXBl"
+
+# Set the URL for the job submission endpoint
+url <- "https://developer.nrel.gov/api/reopt/stable/job"
+
+job_url <- paste0(url, "?api_key=", api_key)
 ```
 
 ```{r}
@@ -234,9 +293,6 @@ api_version <- jsonlite::fromJSON(version_url) # retrieved
 
 
 ```{r}
-
-
-
 #PV & wind space available:  ❌ Land only ✅ Roofspace only ❌ Land & roofspace
 
 #PV System Characteristics
