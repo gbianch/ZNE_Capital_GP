@@ -14,18 +14,60 @@ library(tidyverse)
 library(kableExtra)
 library(DT)
 library(ggplot2)
+library(readxl)
+library(here)
 
 MSA_landlord_data <- read_sheet("https://docs.google.com/spreadsheets/d/1zCePYRyJ5lb1Z5jvCujg17EtwqpxJN1E1_HwJL66uLM/edit#gid=122953884") 
 
-# select_MSAs <- read_sheet("https://docs.google.com/spreadsheets/d/1lmTpSDwVANxdAg5sW87Q8l_gtig7M0EjPPJ6J5_7dwg/edit?usp=sharing")
+# for shiny app
+state_deposit_data<- read_xlsx(here("data/raw/landlord_state_data.xlsx")) %>% clean_names()
+
+eviction_notice <- read_xlsx(here("data/raw/landlord_state_data.xlsx"), sheet= "Sheet2") %>% 
+  clean_names() %>% 
+  rename(eviction_days = sel_min_nonpayment) 
+
 ```
 
-```{r}
-#filter by new MSA list
-# new_MSA_list <- unique(select_MSAs$cbsa)
-# 
-# MSA_landlord_data <- MSA_landlord_data %>% 
-#   filter(cbsa %in% c(new_MSA_list))
+
+```{r wrangling state deposit limits}
+# Define a regular expression pattern to match target phrases
+phrase_pattern <- "(one|two)\\smonth|no\\sstatutory\\slimit"
+
+# Define a function to extract matched words from each sentence
+extract_words <- function(sentence, pattern) {
+  words <- regmatches(sentence, gregexpr(pattern, sentence, ignore.case = TRUE))[[1]]
+  if (length(words) > 0) {
+    return(paste(words, collapse = " "))
+  } else {
+    return(NA)
+  }
+}
+
+state_deposit_data$deposit_limit <- NA
+
+# Create a new column with matched words
+state_deposit_data <- state_deposit_data %>%
+  mutate(matched_words = sapply(limit, extract_words, pattern = phrase_pattern))
+
+# put matched words in new column
+state_deposit_data$deposit_limit <- sapply(state_deposit_data$matched_words, extract_words, pattern = phrase_pattern)
+
+# rename deposit data to apply weights
+landlord_state_data <- state_deposit_data %>%
+  mutate(deposit_limit = case_when(
+    matched_words == "One month"   ~ "1_month_rent",
+    matched_words == "Two month" ~ "2_months_rent",
+    matched_words == "No statutory limit" ~ "N",
+    TRUE ~ NA_character_
+  )) %>% 
+  select(state, limit, deposit_limit) %>% 
+  inner_join(eviction_notice, by = join_by(state == jurisdictions))
+
+#write result to google sheet
+sheet_write(landlord_state_data, ss = "https://docs.google.com/spreadsheets/d/1A6o934oBp9Sdbxrx30GkVrGaX9PyzpS1pZc8Pz6Aoro/edit#gid=0", sheet = "MSA_landlord_data") # manually edited eviction data
+  
+# write output 
+write.xlsx(landlord_state_data, here("data/intermediate/demographic.xlsx"), sheetName = "Sheet1")
 ```
 
 
@@ -36,17 +78,8 @@ MSA_landlord_data <- MSA_landlord_data %>%
     security_depopsit_limit_num = case_when(
       security_deposit_limit == "N" ~ 1.0, 
       security_deposit_limit == "1_month_rent" ~ 0.0,
-      security_deposit_limit == "2_months_rent" ~ 0.5))
+      security_deposit_limit == "2_months_rent" ~ 0.5)) 
 
-# #notice_of_entry_days
-# MSA_landlord_data <- MSA_landlord_data %>% 
-#   mutate(
-#     notice_for_entry_days_num = case_when(
-#       notice_for_entry_days == "N" ~ 1.0, 
-#       notice_for_entry_days == "0" ~ 1.0,
-#       notice_for_entry_days == "0.5" ~ 0.75,
-#       notice_for_entry_days == "1" ~ 0.5,
-#       notice_for_entry_days == "2" ~ 0.0,))
 ```
 
 ```{r}
@@ -94,11 +127,6 @@ for (j in 1:size[1]) {
   }
 }
 
-datatable(MSA_landlord_data, extensions = 'Buttons', options = list(
-    dom = 'Bfrtip',
-    buttons = c('copy', 'csv', 'excel', 'pdf', 'print')
-  )
-)
 ```
 
 ```{r}
