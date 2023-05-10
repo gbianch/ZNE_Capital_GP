@@ -6,7 +6,7 @@
 #' @return  Normalized column
 
 normalize = function(col) {
-  normalized_col = (col-min(col))/(max(col)-min(col))
+  normalized_col = (col-min(col))/ (max(col)-min(col))
   return(normalized_col)
 }
                                     
