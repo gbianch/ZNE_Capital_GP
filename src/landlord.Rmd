@@ -16,58 +16,10 @@ library(DT)
 library(ggplot2)
 library(readxl)
 library(here)
+source(here("R/normalize.R"))
 
 MSA_landlord_data <- read_sheet("https://docs.google.com/spreadsheets/d/1zCePYRyJ5lb1Z5jvCujg17EtwqpxJN1E1_HwJL66uLM/edit#gid=122953884") 
 
-# for shiny app
-state_deposit_data<- read_xlsx(here("data/raw/landlord_state_data.xlsx")) %>% clean_names()
-
-eviction_notice <- read_xlsx(here("data/raw/landlord_state_data.xlsx"), sheet= "Sheet2") %>% 
-  clean_names() %>% 
-  rename(eviction_days = sel_min_nonpayment) 
-
-```
-
-
-```{r wrangling state deposit limits}
-# Define a regular expression pattern to match target phrases
-phrase_pattern <- "(one|two)\\smonth|no\\sstatutory\\slimit"
-
-# Define a function to extract matched words from each sentence
-extract_words <- function(sentence, pattern) {
-  words <- regmatches(sentence, gregexpr(pattern, sentence, ignore.case = TRUE))[[1]]
-  if (length(words) > 0) {
-    return(paste(words, collapse = " "))
-  } else {
-    return(NA)
-  }
-}
-
-state_deposit_data$deposit_limit <- NA
-
-# Create a new column with matched words
-state_deposit_data <- state_deposit_data %>%
-  mutate(matched_words = sapply(limit, extract_words, pattern = phrase_pattern))
-
-# put matched words in new column
-state_deposit_data$deposit_limit <- sapply(state_deposit_data$matched_words, extract_words, pattern = phrase_pattern)
-
-# rename deposit data to apply weights
-landlord_state_data <- state_deposit_data %>%
-  mutate(deposit_limit = case_when(
-    matched_words == "One month"   ~ "1_month_rent",
-    matched_words == "Two month" ~ "2_months_rent",
-    matched_words == "No statutory limit" ~ "N",
-    TRUE ~ NA_character_
-  )) %>% 
-  select(state, limit, deposit_limit) %>% 
-  inner_join(eviction_notice, by = join_by(state == jurisdictions))
-
-#write result to google sheet
-sheet_write(landlord_state_data, ss = "https://docs.google.com/spreadsheets/d/1A6o934oBp9Sdbxrx30GkVrGaX9PyzpS1pZc8Pz6Aoro/edit#gid=0", sheet = "MSA_landlord_data") # manually edited eviction data
-  
-# write output 
-write.xlsx(landlord_state_data, here("data/intermediate/demographic.xlsx"), sheetName = "Sheet1")
 ```
 
 
@@ -75,30 +27,34 @@ write.xlsx(landlord_state_data, here("data/intermediate/demographic.xlsx"), shee
 #security_deposit_limit
 MSA_landlord_data <- MSA_landlord_data %>% 
   mutate(
-    security_depopsit_limit_num = case_when(
+    security_deposit_limit_num = case_when(
       security_deposit_limit == "N" ~ 1.0, 
       security_deposit_limit == "1_month_rent" ~ 0.0,
-      security_deposit_limit == "2_months_rent" ~ 0.5)) 
-
-```
-
-```{r}
-#normalize eviction notice (days)
-MSA_landlord_data <- MSA_landlord_data %>% 
-  mutate(
-    eviction_notice_days_normalized = (eviction_notice_days-min(eviction_notice_days))/(max(eviction_notice_days)-min(eviction_notice_days)) 
-  )
-
-#"invert" normalized score for eviction notice days
+      security_deposit_limit == "2_months_rent" ~ 0.5)) %>% 
+    #"invert" normalized score for eviction notice days
 #1 - normalized score (since more eviction notice is worse for landlords)
-MSA_landlord_data <- MSA_landlord_data %>% 
-  mutate(
-    eviction_notice_days_normalized_inverted = 1 - eviction_notice_days_normalized
-  )
+  mutate(n_eviction_notice = 1- normalize(eviction_notice_days))
+
+# assign numeric values to security deposit limit for all states
+state_landlord_policy <- state_landlord_policy %>% 
+  mutate(security_deposit_limit = case_when(
+      deposit_limit == "N" ~ 1.0, 
+      deposit_limit == "1_months_rent" ~ 0.0,
+      deposit_limit == "1_month_rent" ~ 0.0,
+      deposit_limit == "1.5_months_rent" ~ 0.25,
+      deposit_limit == "2_months_rent" ~ 0.5,
+      deposit_limit == "2.5_months_rent" ~ 0.75,
+      deposit_limit == "3_months_rent" ~ 0.75)) %>% 
+   #"invert" normalized score for eviction notice days
+#1 - normalized score (since more eviction notice is worse for landlords)
+  mutate(n_eviction_notice = 1- normalize(eviction_days))
+  
+
 ```
 
-```{r}
 #calculate landlord category score
+
+```{r}
 
 #input landlord weights for each indicator in the following order: eviction notice days, security deposit limit, notice for entry 
 
@@ -134,31 +90,4 @@ for (j in 1:size[1]) {
 #gs4_create("MSA_landlord_score")
 sheet_write(MSA_landlord_data, ss = "https://docs.google.com/spreadsheets/d/1nLpDhM88a3rEBDVK5RZlk2B6QuwVIwvsfE5HeBz0mLo/edit?usp=sharing", sheet = "MSA_landlord_data")
 ```
-
-```{r}
-# mean ("mean_metric"), 95th percentile ("perc_metric"), and distribution for sensitivity analysis
-
-#Eviction Notice (normalized, inverted)
-mean_eviction <- mean(MSA_landlord_data$eviction_notice_days_normalized_inverted)
-mean_eviction
-
-perc_eviction <- quantile(MSA_landlord_data$eviction_notice_days_normalized_inverted, probs = 0.95)
-perc_eviction
-
-eviction_distribution <- density(MSA_landlord_data$eviction_notice_days_normalized_inverted)
-plot(eviction_distribution)
-
-#Security Deposit Limit
-mean_deposit <- mean(MSA_landlord_data$security_depopsit_limit_num)
-mean_deposit
-
-perc_deposit <- quantile(MSA_landlord_data$security_depopsit_limit_num, probs = 0.95)
-perc_deposit
-
-deposit_distribution <- density(MSA_landlord_data$security_depopsit_limit_num)
-plot(deposit_distribution)
-
-```
-
-
 
