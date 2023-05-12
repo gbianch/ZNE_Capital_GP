@@ -19,13 +19,13 @@ library(readxl)
 
 
 ```{r echo=FALSE}
-
-unfiltered_msas <- 
-real_estate_metrics <- read_xlsx(here("data/intermediate/metric_data.xlsx"), sheet="real_estate_metrics") %>% 
+# list of MSAs without filtering population size
+unfiltered_msas <- read_csv(here("data/intermediate/unfilter_msas.csv"))
+real_estate_metrics <- read_csv(here("data/intermediate/demographic_data.csv")) %>% 
   select(cbsa, anchor_city, msa, starts_with("n_")) %>% 
   mutate(cbsa = factor(cbsa))
   
-landlord_metrics <- read_xlsx(here("data/intermediate/metric_data.xlsx"), sheet="landlord_metrics") %>% 
+landlord_metrics <- read_csv(here("data/intermediate/landlord_data.csv")) %>% 
   select(cbsa, starts_with("n_"))%>% 
   mutate(cbsa = factor(cbsa))
 
@@ -33,7 +33,7 @@ climate_risk_metrics <- read_csv(here("data/intermediate/climate_risk_metrics.cs
   mutate(cbsa = factor(cbsa)) %>% 
   select(!risk_score)
 
-reopt_metrics <- read_xlsx(here("data/intermediate/metric_data.xlsx"), sheet="reopt_metrics") %>% 
+reopt_metrics <- read_csv(here("data/intermediate/reopt_metrics")) %>% 
   select(cbsa, starts_with("n_")) %>% 
   mutate(cbsa = factor(cbsa))
 
@@ -69,7 +69,7 @@ equity_weights <- c(0.18, # real estate weight
                     0.14, # electricity weight
                     0.22) # climate risk weight
 
-client_weights <- c(0.18, 0.07, 0.11, 0.07, 0.0, 0.07, 0.50)
+
 
 ```
 
@@ -149,7 +149,7 @@ unwt_criteria <- wt_real_estate_metrics %>%
 
 equity_test <- calculate_wt_criteria(unwt_criteria, equity_weights)
 
-client_test <- calculate_wt_criteria(unwt_criteria, client_weights)
+
 ```
 
 # Visualize results
@@ -173,24 +173,5 @@ ggplot(data = client_score_tidy, aes(y = reorder(msa_state,  wt_criteria_score, 
    scale_fill_manual(values = c("palevioletred1","orange",  "gold", "#44AA99", "dodgerblue4", "#BC80BD", "#6495ED"),
       breaks = c("Climate Risk Avoided", "Avoided CO2 Emissions", "Electricity Generation", "Solar Financials", "Real Estate", "Landlord Policy", "Avoided Health Costs")) +
         scale_x_continuous(limits = c(0, 0.8), expand = c(0,0), breaks=seq(0, 0.8, 0.1)) 
-```
-
-
-## Inputs and Outputs
-
-
-
-
-## Embedded Application
-
-
-
-```{r tabsets, echo=FALSE}
-shinyAppFile(
-  here("solar_fam_shiny/app.R"),
-  options = list(
-    width = "100%", height = 550
-  )
-)
 ```
 
