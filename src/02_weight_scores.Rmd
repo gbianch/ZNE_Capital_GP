@@ -1,0 +1,208 @@
+---
+title: "Total Score"
+author: "Grace Bianchi"
+date: '2022-11-14'
+output: 
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=TRUE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(googlesheets4)
+library(dplyr)
+library(here)
+```
+
+```{r, eval=FALSE}
+# read in the normalized data
+real_estate_score_data <- read_sheet("https://docs.google.com/spreadsheets/d/1Ssmb7pUd4NFZocVp9C75SRMOV6tAJCCt0TjrCYBB8pY/edit#gid=1038418521") %>% 
+  select(cbsa, real_estate_score)
+
+rental_policy_score_data <- read_sheet("https://docs.google.com/spreadsheets/d/1nLpDhM88a3rEBDVK5RZlk2B6QuwVIwvsfE5HeBz0mLo/edit#gid=983090810") %>% 
+  select(cbsa, landlord_score)
+
+reopt_data <- read_sheet("https://docs.google.com/spreadsheets/d/1tPqpmS8JOeRyunEmSyFYPYwshKDGx54Z-MISgYO3wZE/edit#gid=1874679054") %>% 
+  select(cbsa, city_msa, state, normalized_irr, inverted_n_total_co2, inverted_n_health_emissions_cost, normalized_annual_renewable)
+
+climate_risk_data <- read_sheet("https://docs.google.com/spreadsheets/d/1HZCeNGf61RJ9GJs3cLJcl9aNpvmPMBF1Yoss2fytltc/edit#gid=2045475301", sheet = "climate_risk+EAL") %>% 
+  select(cbsa, normalized_inverted_climate_risk)
+
+```
+
+
+```{r data wrangling}
+criteria_all <- real_estate_score_data %>% 
+  inner_join(rental_policy_score_data)  %>% 
+  inner_join(reopt_data) %>% 
+  inner_join(climate_risk_data) # combine all criteria scores into one dataframe
+
+### Cleaning up the data order and column names
+# reorder columns
+col_order <-c("cbsa", "city_msa", "state", "real_estate_score", "landlord_score", "normalized_annual_renewable", "normalized_irr", "inverted_n_total_co2",  "inverted_n_health_emissions_cost", "normalized_inverted_climate_risk")
+
+# rename columns
+criteria_all <- criteria_all[, col_order] %>% 
+  rename(financial_score = normalized_irr,
+         co2_score = inverted_n_total_co2,
+         health_impact_score = inverted_n_health_emissions_cost,
+         electricity_score = normalized_annual_renewable,
+         climate_risk_score = normalized_inverted_climate_risk) %>% 
+  mutate(real_estate_score = as.numeric(real_estate_score),
+         landlord_score = as.numeric(landlord_score)) %>%
+  # round criteria scores
+  mutate_if(is.numeric,round, digits = 5) 
+
+```
+
+
+```{r model weights}
+# weights for each criteria must be in this order
+equity_weights <- c(0.18, # real estate weight
+                    0.0, # landlord weight
+                    0.10, # financial weight
+                    0.19, # co2 emissions avoided weight
+                    0.17, # health impacts weight
+                    0.14, # electricity weight
+                    0.22) # climate risk weight
+
+client_weights <- c(0.18, 0.07, 0.11, 0.07, 0.0, 0.07, 0.50)
+```
+
+
+```{r}
+# creating a function with criteria data and weight inputs
+calculate_wt_criteria <- function(data, weights){
+    wt_criteria <- data %>%
+      # multiply each criteria by respective weight
+      mutate(wt_real_estate = real_estate_score * weights[1],
+             wt_landlord_policy = landlord_score * weights[2], 
+             wt_solar_irr = financial_score * weights[3],
+            wt_co2 = co2_score * weights[4], 
+             wt_health_impacts = health_impact_score * weights[5],
+             wt_electricity = electricity_score * weights[6],
+             wt_climate_risk = climate_risk_score * weights[7]) %>% 
+      # select weighted columns and rename them
+      select(!c(ends_with("_score"))) %>%
+      # create column for investment score
+      mutate(investment_score = 0) %>%
+      # for loop to sum weighted columns for each row
+      mutate(investment_score = apply(.[, 4:10], 1, sum)) %>% 
+      rename("Real Estate"="wt_real_estate",
+             "Landlord Policy"="wt_landlord_policy",
+             "Electricity Generation"="wt_electricity", 
+             "Avoided CO2 Emissions"="wt_co2",
+             "Climate Risk Avoided"="wt_climate_risk",
+             "Avoided Health Costs"="wt_health_impacts", 
+             "Solar Financials"="wt_solar_irr") %>%  
+      unite("msa_state", city_msa:state, sep = ", ")
+ }
+
+#sheet_write(criteria_all, ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "FINAL_total_score")
+```
+
+### Data Visualization- barcharts
+
+```{r tidy data}
+# client weights
+wt_criteria_client <- calculate_wt_criteria(criteria_all, client_weights) 
+  
+client_score_tidy <- wt_criteria_client  %>% 
+  pivot_longer(cols = c(3:9), # selecting criteria cols
+               names_to = "criteria",
+               values_to = "wt_criteria_score") %>% 
+ filter(msa_state != "Portland, ME")  # removing portland (negative number)
+
+# equity weights
+wt_criteria_equity <- calculate_wt_criteria(criteria_all, equity_weights) 
+
+# tidy data for bar chart
+equity_tidy <- wt_criteria_equity %>% 
+  pivot_longer(cols = c(3:9), # selecting criteria cols
+               names_to = "criteria",
+               values_to = "wt_criteria_score") 
+```
+
+
+```{r client data viz}
+#tiff(filename = "client_criteria_barchart.tiff",width = 8, height = 6, units = "in", res = 300, pointsize = 12)
+ggplot(data = client_score_tidy, aes(y = reorder(msa_state,  wt_criteria_score, FUN=sum), x = wt_criteria_score)) +
+    geom_col(aes(fill = factor(criteria, levels = c("Climate Risk Avoided", "Avoided CO2 Emissions", "Electricity Generation", "Solar Financials", "Real Estate", "Landlord Policy", "Avoided Health Costs")))) +
+  theme_bw() +
+  labs(x = "Investment Favorabliity Score",
+       y = " ",
+       title = "") +
+  guides(fill=guide_legend(title="Criteria (weighted)")) +
+   scale_fill_manual(values = c("palevioletred1","orange",  "gold", "#44AA99", "dodgerblue4", "#BC80BD", "#6495ED"),
+      breaks = c("Climate Risk Avoided", "Avoided CO2 Emissions", "Electricity Generation", "Solar Financials", "Real Estate", "Landlord Policy", "Avoided Health Costs")) +
+        scale_x_continuous(limits = c(0, 0.8), expand = c(0,0), breaks=seq(0, 0.8, 0.1)) 
+#+ theme(legend.position = "none")
+#dev.off()
+```
+
+```{r student data viz}
+# ## read in weighted criteria sheet
+# student_weighted_criteria <- read_sheet(ss = "https://docs.google.com/spreadsheets/d/1yqjhJvXUcEiC3qiYWkKNlF6NNpYXWg15zZHwmwpS5Q0/edit#gid=0", sheet = "wtd_criteria_stud") 
+
+
+#tiff(filename = "wt_criteria_student_chart.tiff", width = 8, height = 6, units = "in", res = 300)
+ ggplot(data = equity_tidy, aes(y = reorder(msa_state, wt_criteria_score, FUN=sum), x = wt_criteria_score)) + 
+  geom_col(aes(fill = factor(criteria, levels = c("Climate Risk Avoided", "Avoided CO2 Emissions", "Electricity Generation", "Solar Financials", "Real Estate", "Landlord Policy", "Avoided Health Costs")))) +
+  labs(x =  "Investment Favorabliity Score",
+       y = " ",
+       title = "") +
+  theme_bw() +
+  guides(fill=guide_legend(title="Criteria (weighted)")) +
+   scale_fill_manual(values = c("palevioletred1","orange",  "gold", "#44AA99", "dodgerblue4", "#BC80BD", "#6495ED"),
+      breaks = c("Climate Risk Avoided", "Avoided CO2 Emissions", "Electricity Generation", "Solar Financials", "Real Estate", "Landlord Policy", "Avoided Health Costs")) +
+  scale_x_continuous(limits = c(0, 0.8), expand = c(0,0), breaks=seq(0, 0.8, 0.1)) 
+
+#dev.off()
+```
+
+```{r COMBINED BAR CHARTS, eval=FALSE}
+library(patchwork)
+
+# combined visual of client and equity score results
+p1 <- ggplot(data = client_score_tidy, aes(y = reorder(msa_state,  wt_criteria_score, FUN=sum), x = wt_criteria_score)) +
+    geom_col(aes(fill = criteria)) +
+  labs(x = "Total Score",
+       y = " ",
+       title = "") +
+  theme_bw() +
+  guides(fill=guide_legend(title="Criteria (weighted)")) +
+   scale_fill_manual(values = c("palevioletred1","orange",  "gold", "#44AA99", "dodgerblue4", "#BC80BD", "#6495ED"),
+      breaks = c("Climate Risk Avoidance", "CO2 Abatement", "Electricity Production", "Solar IRR", "Real Estate", "Landlord Policy", "Health Impacts")) +
+        scale_x_continuous(limits = c(0, 0.8), expand = c(0,0), breaks=seq(0, 0.8, 0.1)) +
+  theme(legend.position = "none") +
+  theme(axis.title.y = element_text(size = 20))
+
+
+
+p2 <- ggplot(data = equity_tidy, aes(y = reorder(msa_state, wt_criteria_score, FUN=sum), x = wt_criteria_score)) + 
+    geom_col(aes(fill = criteria)) +
+  labs(x = "Total Score",
+       y = " ",
+       title = "") +
+  theme_bw() +
+  guides(shape = guide_legend(override.aes = list(size = 0.5))) +
+  guides(fill=guide_legend(title="Criteria (weighted)")) +
+   scale_fill_manual(values = c("palevioletred1","orange",  "gold", "#44AA99", "dodgerblue4", "#BC80BD", "#6495ED"),
+      breaks = c("Climate Risk Avoidance", "CO2 Abatement", "Electricity Production", "Solar IRR", "Real Estate", "Landlord Policy", "Health Impacts")) +
+        scale_x_continuous(limits = c(0, 0.8), expand = c(0,0), breaks=seq(0, 0.8, 0.1)) +
+    theme(axis.title.y = element_text(size = 11))
+
+
+# tiff(filename = "data_vz.tiff", width=12, units = "in", res=100)
+ p1/p2 + 
+  plot_annotation(tag_levels = 'A') & theme(plot.tag = element_text(size = 16)) 
+ ggsave("test_dim_2plots.jpeg", plot = plots, width = 6, height = 4, units = "in", dpi = 300) 
+ 
+ #rstudioapi::savePlotAsImage(file = "myplot.png",width = dev.size(units="px")[[1]],height=dev.size(units="px")[[2]])
+               
+
+```
+

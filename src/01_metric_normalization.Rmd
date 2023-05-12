@@ -1,0 +1,140 @@
+---
+title: "landlord"
+author: "Virginia Pan"
+date: "10/21/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(googlesheets4)
+library(janitor)
+library(tidyverse)
+library(DT)
+library(readxl)
+library(xlsx)
+library(here)
+source(here("R/normalize.R"))
+
+```
+
+# Calculate and Normalize Real Estate Metrics 
+
+```{r}
+## read in real estate and demographic data 
+city_occupancy_data <- read_sheet("https://docs.google.com/spreadsheets/d/10n55Gt0rySN96OGTQ2_8PzeTcX66n26sOlZBiuiAeBU/edit#gid=808954990") %>% 
+  clean_names() %>% 
+  rename(occ_rate2021 = percent_occupancy_2021)
+
+anchor_city <- read.xlsx(here("data/intermediate/demographic_data.xlsx"), sheetName="anchor_city") %>% 
+  clean_names() %>% 
+   inner_join(city_occupancy_data, by = join_by(cbsa== cbsa, anchor_city==city)) %>% 
+  select(cbsa, anchor_city, occ_rate2021)
+
+MSA_demographic_data <- read_csv(here("data/intermediate/demographic_data.csv")) %>% 
+  clean_names() %>% 
+  left_join(anchor_city)
+
+# calculate real estate metrics
+real_estate_metrics<- MSA_demographic_data %>% 
+    # calculate rent change
+  mutate(cbsa = factor(cbsa),
+         rent_change = (median_rent2022 - median_rent2021)/median_rent2021 * 100,
+         house_price_2021 = as.numeric(house_price_2021),
+         income_to_homeprice = median_income/house_price_2021,
+         rent_to_income = (median_rent2021*12)/median_income) %>%  # multiply monthly rent x 12 for annual rent!
+  select(!c(na, popestimate2021, median_rent2021, median_rent2022, house_price_2021, median_income)) %>% 
+  select(cbsa, anchor_city, msa, state, pop_growth, avg_emp_change, 7:10)
+
+## normalization
+n_real_estate_metrics <- real_estate_metrics %>%
+  # normalize cols and rename columns to start with n
+  mutate(across(5:10, normalize, .names = "n_{.col}")) %>% 
+  mutate(n_income_to_homeprice = 1- n_income_to_homeprice, # subtracted from 1 so higher values are more favorable
+         n_rent_to_income = 1 - n_rent_to_income) %>% 
+  select(cbsa, msa, anchor_city, state, starts_with("n_"))
+
+```
+
+# Normalizing Landlord Metrics
+
+```{r}
+MSA_landlord_data <- read_csv(here("data/intermediate/landlord_data.csv")) %>% 
+  clean_names() 
+
+#security_deposit_limit
+landlord_metrics <- MSA_landlord_data %>% 
+  mutate(
+    security_deposit_limit_num = case_when(
+      security_deposit_limit == "N" ~ 1.0, 
+      security_deposit_limit == "1_month_rent" ~ 0.0,
+      security_deposit_limit == "2_months_rent" ~ 0.5)) %>% 
+    #"invert" normalized score for eviction notice days
+#1 - normalized score (since more eviction notice is worse for landlords)
+  mutate(n_eviction_notice = 1- normalize(eviction_notice_days),
+         n_security_deposit = normalize(security_deposit_limit_num))
+
+# assign numeric values to security deposit limit for all states
+#state_landlord_policy <- state_landlord_policy %>% 
+ # mutate(security_deposit_limit = case_when(
+  #    deposit_limit == "N" ~ 1.0, 
+   #   deposit_limit == "1_months_rent" ~ 0.0,
+    #  deposit_limit == "1_month_rent" ~ 0.0,
+    #  deposit_limit == "1.5_months_rent" ~ 0.25,
+    #  deposit_limit == "2_months_rent" ~ 0.5,
+    #  deposit_limit == "2.5_months_rent" ~ 0.75,
+    #  deposit_limit == "3_months_rent" ~ 0.75)) %>% 
+   #"invert" normalized score for eviction notice days
+#1 - normalized score (since more eviction notice is worse for landlords)
+  # mutate(n_eviction_notice = 1- normalize(eviction_days),
+  #       n_security_deposit = normalize(security_deposit_limit))
+```
+
+
+# reOpt Metric data wrangling and normalization
+
+```{r}
+# read in reopt data (for STCOFIPS codes)
+reopt_metrics <- read_xlsx(here("data/intermediate/reopt_data_outputs.xlsx"), sheet="reopt_msa_outputs") %>% 
+  clean_names() %>% 
+  drop_na() %>% 
+  rename(
+  electricity_generation = annual_renewable_electricity_percent_of_total,
+  total_co2 = lifecycle_total_t_co2,
+  health_emissions_cost = lifecycle_costs_of_health_emissions_difference_from_bau) %>% 
+  select(1:5, electricity_generation, total_co2, health_emissions_cost, irr) 
+
+
+# normalize crit
+n_reopt_metrics <- reopt_metrics %>% 
+mutate(across(electricity_generation:irr, normalize, .names = "n_{.col}"),
+       n_health_emissions_cost = 1-n_health_emissions_cost,
+       n_total_co2 = 1 - n_total_co2) 
+
+
+#write_csv(n_reopt_metrics, here("data/intermediate/reopt_metrics.csv"))
+
+```
+
+
+# reOpt Metric data wrangling and normalization
+
+```{r}
+#read in National Risk Index (NRI) county data
+climate_risk_metrics <- read_csv(here("data/raw/NRI_Table_Counties.csv")) %>% 
+  clean_names() %>% 
+  select(state, stateabbrv, county, countytype, risk_score) %>% 
+  inner_join(reopt_metrics, by = join_by(stateabbrv==state, county==county)) %>% 
+  filter(countytype == "County") # to remove richmond city 
+
+
+# normalize climate risk score
+n_climate_risk <- climate_risk_metrics %>% 
+  mutate(n_climate_risk = 1- normalize(risk_score)) %>%  #invert normalized scores so that places with less climate risk have a better score
+  select(cbsa, city_msa, state, stateabbrv, risk_score, n_climate_risk) 
+
+ 
+ #write_csv(n_climate_risk, here("data/intermediate/climate_risk_metrics.csv"))
+```
+
