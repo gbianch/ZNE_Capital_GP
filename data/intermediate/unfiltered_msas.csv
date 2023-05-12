@@ -1,0 +1,151 @@
+cbsa,MSA,state,pop_percent_change,median_income,area,avg_emp_change,areaname22,median_rent2022,median_rent2021,house_price_2021
+10540,Albany-Lebanon,OR,0.7003474592045666,65196,"Albany, OR MSA",2.2893,"Albany, OR MSA",915,908,NA
+11180,Ames,IA,0.7094632340031602,64569,"Ames, IA MSA",0.6287,"Ames, IA HUD Metro FMR Area",841,794,NA
+11700,Asheville,NC,0.6149697307936454,60261,"Asheville, NC MSA",3.8051,"Asheville, NC HUD Metro FMR Area",1267,1179,378600
+12020,Athens-Clarke County,GA,0.9835928732412654,59628,"Athens-Clarke County, GA MSA",2.3719,"Athens-Clarke County, GA MSA",832,749,NA
+12060,Atlanta-Sandy Springs-Alpharetta,GA,0.7032121506353068,77589,"Atlanta-Sandy Springs-Roswell, GA MSA",3.0655,"Atlanta-Sandy Springs-Roswell, GA HUD Metro FMR Area",1226,1126,317200
+12220,Auburn-Opelika,AL,1.4988459401721639,52424,"Auburn-Opelika, AL MSA",3.1493,"Auburn-Opelika, AL MSA",748,672,NA
+12260,Augusta-Richmond County,GA-SC,0.688713790623161,56515,"Augusta-Richmond County, GA-SC MSA",1.8641,"Augusta-Richmond County, GA-SC HUD Metro FMR Area",854,767,NA
+12420,Austin-Round Rock-Georgetown,TX,2.3183167509378566,86530,"Austin-Round Rock, TX MSA",2.3049,"Austin-Round Rock, TX MSA",1333,1309,488600
+12540,Bakersfield,CA,0.8435192643492231,58217,"Bakersfield, CA MSA",3.2058,"Bakersfield, CA MSA",826,796,NA
+12700,Barnstable Town,MA,1.5032602666736545,83537,NA,NA,"Barnstable Town, MA MSA",1509,1334,617800
+13380,Bellingham,WA,0.6717875620314645,72055,"Bellingham, WA MSA",3.3188,"Bellingham, WA MSA",1069,1020,NA
+13460,Bend,OR,2.7318100875322915,79796,"Bend-Redmond, OR MSA",2.8791,"Bend-Redmond, OR MSA",1134,1113,NA
+13740,Billings,MT,1.3382674042488634,70018,"Billings, MT MSA",2.2641,"Billings, MT HUD Metro FMR Area",777,773,NA
+13900,Bismarck,ND,0.5618481887690213,67793,"Bismarck, ND MSA",1.195,"Bismarck, ND MSA",783,769,273700
+14260,Boise City,ID,3.3377903040745545,73343,"Boise City, ID MSA",2.2859,"Boise City, ID HUD Metro FMR Area",947,842,468600
+14540,Bowling Green,KY,1.4535109846759047,57057,"Bowling Green, KY MSA",2.2342,"Bowling Green, KY HUD Metro FMR Area",726,694,236400
+15500,Burlington,NC,1.184227371655358,58400,"Burlington, NC MSA",2.3975,"Burlington, NC MSA",748,730,NA
+15980,Cape Coral-Fort Myers,FL,3.0466378702697474,66256,"Cape Coral-Fort Myers, FL MSA",4.0821,"Cape Coral-Fort Myers, FL MSA",1063,1019,360000
+16180,Carson City,NV,0.5385415068936721,65330,"Carson City, NV MSA",4.2103,"Carson City, NV MSA",908,826,NA
+16700,Charleston-North Charleston,SC,1.2567235519533326,72719,"Charleston-North Charleston, SC MSA",2.3757,"Charleston-North Charleston, SC MSA",1318,1155,375200
+16740,Charlotte-Concord-Gastonia,NC-SC,1.175465835601096,71041,"Charlotte-Concord-Gastonia, NC-SC MSA",2.6157,"Charlotte-Concord-Gastonia, NC-SC HUD Metro FMR Area",1100,1090,354100
+16820,Charlottesville,VA,0.5263585558093553,78819,"Charlottesville, VA MSA",2.4225,"Charlottesville, VA MSA",1151,1171,NA
+16860,Chattanooga,TN-GA,0.7171765741245105,62385,"Chattanooga, TN-GA MSA",2.961,"Chattanooga, TN-GA MSA",797,746,255300
+17300,Clarksville,TN-KY,2.0823551726175116,59255,"Clarksville, TN-KY MSA",2.9838,"Clarksville, TN-KY HUD Metro FMR Area",750,734,NA
+17420,Cleveland,TN,1.2888924075686803,56350,"Cleveland, TN MSA",2.5849,"Cleveland, TN MSA",663,650,NA
+17660,Coeur d'Alene,ID,4.1373677930563115,67593,"Coeur d'Alene, ID MSA",2.9582,"Coeur d'Alene, ID MSA",897,805,NA
+17780,College Station-Bryan,TX,1.1816383004046656,49927,"College Station-Bryan, TX MSA",1.3297,"College Station-Bryan, TX MSA",887,817,NA
+17820,Colorado Springs,CO,0.8221282017729947,79014,"Colorado Springs, CO MSA",1.3,"Colorado Springs, CO HUD Metro FMR Area",1116,1033,432900
+17860,Columbia,MO,0.9454025302306195,61781,"Columbia, MO MSA",1.3431,"Columbia, MO HUD Metro FMR Area",759,760,255000
+17900,Columbia,SC,0.9007339001188058,58213,"Columbia, SC MSA",1.4736,"Columbia, SC HUD Metro FMR Area",934,913,233200
+18700,Corvallis,OR,0.8931667489781121,64163,"Corvallis, OR MSA",1.8057,"Corvallis, OR MSA",1148,1109,NA
+18880,Crestview-Fort Walton Beach-Destin,FL,1.9675732799377053,67029,"Crestview-Fort Walton Beach-Destin, FL MSA",2.8309,"Crestview-Fort Walton Beach-Destin, FL HUD Metro FMR Area",1061,1058,384100
+19100,Dallas-Fort Worth-Arlington,TX,1.2697190474170699,75975,"Dallas-Fort Worth-Arlington, TX MSA",2.1974,"Dallas, TX HUD Metro FMR Area",1247,1235,336700
+19300,Daphne-Fairhope-Foley,AL,2.639615681564725,63866,"Daphne-Fairhope-Foley, AL MSA",3.4593,"Daphne-Fairhope-Foley, AL MSA",878,827,NA
+19660,Deltona-Daytona Beach-Ormond Beach,FL,2.1576492579028095,59171,"Deltona-Daytona Beach-Ormond Beach, FL MSA",3.896,"Deltona-Daytona Beach-Ormond Beach, FL HUD Metro FMR Area",994,905,290000
+19780,Des Moines-West Des Moines,IA,1.1680497662634366,74208,"Des Moines-West Des Moines, IA MSA",1.3035,"Des Moines-West Des Moines, IA HUD Metro FMR Area",818,783,258200
+20100,Dover,DE,1.0386489333684488,64308,"Dover, DE MSA",2.2731,"Dover, DE MSA",907,964,283800
+20700,East Stroudsburg,PA,0.6092197232656554,78575,"East Stroudsburg, PA MSA",4.2924,"East Stroudsburg, PA MSA",952,913,NA
+20740,Eau Claire,WI,0.7089025375224437,61684,"Eau Claire, WI MSA",2.5073,"Eau Claire, WI MSA",679,701,NA
+21060,Elizabethtown-Fort Knox,KY,0.7687857556084078,60025,"Elizabethtown-Fort Knox, KY MSA",2.1961,"Elizabethtown, KY HUD Metro FMR Area",668,672,NA
+22020,Fargo,ND-MN,0.7661288711089086,66216,"Fargo, ND-MN MSA",1.5869,"Fargo, ND-MN MSA",751,754,255900
+22180,Fayetteville,NC,0.8136768430722162,55027,"Fayetteville, NC MSA",2.3854,"Fayetteville, NC HUD Metro FMR Area",840,799,189800
+22220,Fayetteville-Springdale-Rogers,AR,2.0275999606962585,71767,"Fayetteville-Springdale-Rogers, AR-MO MSA",1.7117,"Fayetteville-Springdale-Rogers, AR MSA",738,660,271200
+22660,Fort Collins,CO,0.79152371790951,78109,"Fort Collins, CO MSA",1.3877,"Fort Collins, CO MSA",1232,1187,514299.99999999994
+22900,Fort Smith,AR-OK,0.5060948395523763,49065,"Fort Smith, AR-OK MSA",2.3305,"Fort Smith, AR-OK HUD Metro FMR Area",562,570,NA
+23060,Fort Wayne,IN,0.6734759928416404,62155,"Fort Wayne, IN MSA",4.3193,"Fort Wayne, IN MSA",705,669,189900
+23540,Gainesville,FL,0.6161989972413834,53728,"Gainesville, FL MSA",2.222,"Gainesville, FL HUD Metro FMR Area",924,956,299600
+23580,Gainesville,GA,1.8566818443039652,66719,"Gainesville, GA MSA",2.1046,"Gainesville, GA MSA",958,884,NA
+24300,Grand Junction,CO,0.8952218495693829,64055,"Grand Junction, CO MSA",1.4248,"Grand Junction, CO MSA",829,826,NA
+24540,Greeley,CO,2.6189197182503516,85290,"Greeley, CO MSA",0.888,"Greeley, CO MSA",1059,1005,NA
+24780,Greenville,NC,0.9374450372281175,44450,"Greenville, NC MSA",1.6631,"Greenville, NC MSA",791,760,NA
+24860,Greenville-Anderson,SC,1.1405503324678954,62265,"Greenville-Anderson-Mauldin, SC MSA",2.1585,"Greenville-Mauldin-Easley, SC HUD Metro FMR Area",948,897,279100
+25180,Hagerstown-Martinsburg,MD-WV,1.342272756620463,67372,"Hagerstown-Martinsburg, MD-WV MSA",2.0519,NA,NA,NA,245400
+25220,Hammond,LA,1.248979775213592,52872,"Hammond, LA MSA",4.0743,"Hammond, LA MSA",751,727,NA
+25260,Hanford-Corcoran,CA,0.5346367287570352,62155,"Hanford-Corcoran, CA MSA",2.4371,"Hanford-Corcoran, CA MSA",988,962,NA
+25420,Harrisburg-Carlisle,PA,0.6658102069515042,73559,"Harrisburg-Carlisle, PA MSA",2.4922,"Harrisburg-Carlisle, PA MSA",897,824,219300
+25940,Hilton Head Island-Bluffton,SC,2.448746101751213,67779,"Hilton Head Island-Bluffton-Beaufort, SC MSA",1.9058,NA,NA,NA,NA
+25980,Hinesville,GA,1.6636607898708085,49733,"Hinesville, GA MSA",2.1268,"Hinesville, GA HUD Metro FMR Area",951,901,NA
+26140,Homosassa Springs,FL,2.3833733800509056,47197,"Homosassa Springs, FL MSA",3.7098,"Homosassa Springs, FL MSA",771,716,NA
+26420,Houston-The Woodlands-Sugar Land,TX,0.9680085326644389,70893,"Houston-The Woodlands-Sugar Land, TX MSA",2.4374,"Houston-The Woodlands-Sugar Land, TX HUD Metro FMR Area",1127,1092,304100
+26620,Huntsville,AL,1.7630936524580076,76963,"Huntsville, AL MSA",2.565,"Huntsville, AL MSA",828,743,280400
+26820,Idaho Falls,ID,2.861150779107533,70559,"Idaho Falls, ID MSA",1.145,"Idaho Falls, ID HUD Metro FMR Area",752,709,NA
+26900,Indianapolis-Carmel-Anderson,IN,0.6199555282206557,70224,"Indianapolis-Carmel-Anderson, IN MSA",3.4493,"Indianapolis-Carmel, IN HUD Metro FMR Area",833,831,260500
+26980,Iowa City,IA,0.9937605059973218,66216,"Iowa City, IA MSA",0.9406,NA,NA,NA,NA
+27260,Jacksonville,FL,1.6307680086980914,68394,"Jacksonville, FL MSA",2.9617,"Jacksonville, FL HUD Metro FMR Area",1076,989,325000
+27340,Jacksonville,NC,0.6960216865704447,55534,"Jacksonville, NC MSA",2.1586,"Jacksonville, NC MSA",780,772,NA
+27900,Joplin,MO,0.6406474839975962,55045,"Joplin, MO MSA",2.0689,"Joplin, MO MSA",639,655,NA
+28420,Kennewick-Richland,WA,1.310194343851255,78367,"Kennewick-Richland, WA MSA",2.3681,"Kennewick-Richland, WA MSA",897,867,380900
+28660,Killeen-Temple,TX,1.9541343669250648,59753,"Killeen-Temple, TX MSA",1.2841,"Killeen-Temple, TX HUD Metro FMR Area",688,678,NA
+28740,Kingston,NY,0.6957019489561719,78938,"Kingston, NY MSA",3.32,"Kingston, NY MSA",1137,1081,346600
+28940,Knoxville,TN,1.3366181654847624,62592,"Knoxville, TN MSA",2.8531,"Knoxville, TN HUD Metro FMR Area",859,782,279000
+29420,Lake Havasu City-Kingman,AZ,1.691969916382492,46616,"Lake Havasu City-Kingman, AZ MSA",4.543,"Lake Havasu City-Kingman, AZ MSA",812,770,NA
+29460,Lakeland-Winter Haven,FL,3.330485592396395,56379,"Lakeland-Winter Haven, FL MSA",4.7599,"Lakeland-Winter Haven, FL MSA",906,859,270000
+29740,Las Cruces,NM,0.7316995529765938,45178,"Las Cruces, NM MSA",1.4359,"Las Cruces, NM MSA",692,635,NA
+29820,Las Vegas-Henderson-Paradise,NV,0.8397166165358633,63677,"Las Vegas-Henderson-Paradise, NV MSA",8.7112,"Las Vegas-Henderson-Paradise, NV MSA",1080,997,397000
+30020,Lawton,OK,0.6876026272577997,49422,"Lawton, OK MSA",2.9461,"Lawton, OK HUD Metro FMR Area",631,616,NA
+30300,Lewiston,ID-WA,0.7347230420329925,57610,"Lewiston, ID-WA MSA",1.6733,"Lewiston, ID-WA MSA",755,703,NA
+30860,Logan,UT-ID,2.9006197732008987,67022,"Logan, UT-ID MSA",1.0387,"Logan, UT-ID MSA",748,652,NA
+30980,Longview,TX,0.5993297292008122,56777,"Longview, TX MSA",1.7978,"Longview, TX HUD Metro FMR Area",836,762,NA
+31020,Longview,WA,0.540910893945404,71194,"Longview, WA MSA",2.9365,"Longview, WA MSA",856,817,NA
+31180,Lubbock,TX,0.9691949969421618,57634,"Lubbock, TX MSA",1.3023,"Lubbock, TX HUD Metro FMR Area",821,779,NA
+31460,Madera,CA,1.7813816881624316,63454,"Madera, CA MSA",2.5524,"Madera, CA MSA",972,937,NA
+32580,McAllen-Edinburg-Mission,TX,0.9346437301365277,44818,"McAllen-Edinburg-Mission, TX MSA",2.6371000000000002,"McAllen-Edinburg-Mission, TX MSA",677,610,NA
+32900,Merced,CA,1.68071104548391,53992,"Merced, CA MSA",2.4704,"Merced, CA MSA",983,949,NA
+33540,Missoula,MT,1.0952485664507179,66803,"Missoula, MT MSA",2.9303,"Missoula, MT MSA",861,814,NA
+34100,Morristown,TN,0.7176363509066722,43213,"Morristown, TN MSA",3.3894,"Morristown, TN HUD Metro FMR Area",616,599,NA
+34100,Morristown,TN,0.7176363509066722,43213,"Morristown, TN MSA",3.3894,"Morristown, TN HUD Metro FMR Area",616,604,NA
+34580,Mount Vernon-Anacortes,WA,0.6499707359147338,72648,"Mount Vernon-Anacortes, WA MSA",3.4543,"Mount Vernon-Anacortes, WA MSA",1103,1023,NA
+34820,Myrtle Beach-Conway-North Myrtle Beach,SC-NC,3.7047735677872664,59073,"Myrtle Beach-Conway-North Myrtle Beach, SC-NC MSA",3.3864,"Myrtle Beach-North Myrtle Beach-Conway, SC HUD Metro FMR Area",975,808,294000
+34940,Naples-Marco Island,FL,2.360513314186152,74215,"Naples-Immokalee-Marco Island, FL MSA",4.1877,"Naples-Immokalee-Marco Island, FL MSA",1392,1196,645000
+34980,Nashville-Davidson--Murfreesboro--Franklin,TN,0.8586493650465108,72725,"Nashville-Davidson--Murfreesboro--Franklin, TN MSA",3.6637,"Nashville-Davidson--Murfreesboro--Franklin, TN HUD Metro FMR Area",1196,1114,349500
+35840,North Port-Sarasota-Bradenton,FL,2.706105671079085,70095,"North Port-Sarasota-Bradenton, FL MSA",3.7887,"North Port-Sarasota-Bradenton, FL MSA",1170,1076,405000
+36100,Ocala,FL,2.2643559371439173,55161,"Ocala, FL MSA",2.9383,"Ocala, FL MSA",863,809,230000
+36140,Ocean City,NJ,0.6142389852435395,78657,"Ocean City, NJ MSA",6.0599,"Ocean City, NJ MSA",1194,1145,NA
+36260,Ogden-Clearfield,UT,1.4464126783612299,81364,"Ogden-Clearfield, UT MSA",1.8918,"Ogden-Clearfield, UT HUD Metro FMR Area",954,863,417800
+36420,Oklahoma City,OK,0.9055727933400013,61815,"Oklahoma City, OK MSA",2.703,"Oklahoma City, OK HUD Metro FMR Area",794,785,194200
+36500,Olympia-Lacey-Tumwater,WA,0.7601554125567664,81659,"Olympia-Tumwater, WA MSA",2.9543,"Olympia-Tumwater, WA MSA",1147,1095,NA
+36740,Orlando-Kissimmee-Sanford,FL,0.5317275693536997,64936,"Orlando-Kissimmee-Sanford, FL MSA",6.6199,"Orlando-Kissimmee-Sanford, FL MSA",1331,1227,356900
+37340,Palm Bay-Melbourne-Titusville,FL,1.4179113069421898,65333,"Palm Bay-Melbourne-Titusville, FL MSA",3.3806,"Palm Bay-Melbourne-Titusville, FL MSA",1046,976,305000
+37460,Panama City,FL,2.698024200251059,60557,"Panama City, FL MSA",2.7882,"Panama City, FL MSA",1082,1004,298500
+37860,Pensacola-Ferry Pass-Brent,FL,0.9443717904358655,64877,"Pensacola-Ferry Pass-Brent, FL MSA",2.7199,"Pensacola-Ferry Pass-Brent, FL MSA",944,901,281000
+38060,Phoenix-Mesa-Chandler,AZ,1.606844805538294,75731,"Phoenix-Mesa-Scottsdale, AZ MSA",2.8803,"Phoenix-Mesa-Scottsdale, AZ MSA",1179,1111,415400
+38540,Pocatello,ID,1.2171772428884027,60475,"Pocatello, ID MSA",1.5067,"Pocatello, ID HUD Metro FMR Area",656,620,NA
+38860,Portland-South Portland,ME,0.8701495592196187,78558,"Portland-South Portland, ME Met NECTA",0.9179,"Portland, ME HUD Metro FMR Area",1435,1295,418100
+38940,Port St. Lucie,FL,2.8005079582853547,63771,"Port St. Lucie, FL MSA",3.5695,"Port St. Lucie, FL MSA",1059,999,332000
+39100,Poughkeepsie-Newburgh-Middletown,NY,0.6560373222544845,89033,NA,NA,"Poughkeepsie-Newburgh-Middletown, NY MSA",1193,1246,NA
+39150,Prescott Valley-Prescott,AZ,2.1875672278301073,57230,NA,NA,NA,NA,NA,NA
+39340,Provo-Orem,UT,3.2851976466997646,86629,"Provo-Orem, UT MSA",1.5185,"Provo-Orem, UT MSA",972,874,NA
+39380,Pueblo,CO,0.6855942113292217,56689,"Pueblo, CO MSA",-0.2516,"Pueblo, CO MSA",848,672,NA
+39460,Punta Gorda,FL,3.6619493509257293,59285,"Punta Gorda, FL MSA",3.8496,"Punta Gorda, FL MSA",988,918,315000
+39580,Raleigh-Cary,NC,1.9846151138023904,85303,"Raleigh, NC MSA",2.3456,"Raleigh, NC MSA",1155,1134,392800
+39660,Rapid City,SD,1.9027044097381718,63342,"Rapid City, SD MSA",1.7901,"Rapid City, SD HUD Metro FMR Area",736,710,NA
+39900,Reno,NV,1.229109612731793,76182,"Reno, NV MSA",4.3809,"Reno, NV MSA",1204,1028,531800
+40060,Richmond,VA,0.6329546853695351,74151,"Richmond, VA MSA",2.6413,"Richmond, VA MSA",1120,1098,342800
+40140,Riverside-San Bernardino-Ontario,CA,1.0335676616500604,77018,"Riverside-San Bernardino-Ontario, CA MSA",2.7645,"Riverside-San Bernardino-Ontario, CA MSA",1306,1199,510000
+40900,Sacramento-Roseville-Folsom,CA,0.5033444460606222,84421,"Sacramento--Roseville--Arden-Arcade, CA MSA",2.7048,"Sacramento--Roseville--Arden-Arcade, CA HUD Metro FMR Area",1319,1276,500000
+41100,St. George,UT,5.113124161737868,61186,"St. George, UT MSA",2.6276,"St. George, UT MSA",945,822,NA
+41420,Salem,OR,0.5109833780654971,65665,"Salem, OR MSA",1.9817,"Salem, OR MSA",935,882,411100
+41540,Salisbury,MD-DE,2.342887526615593,68470,"Salisbury, MD-DE MSA",2.4667,"Salisbury, MD HUD Metro FMR Area",847,862,NA
+41700,San Antonio-New Braunfels,TX,1.3677185690636515,66775,"San Antonio-New Braunfels, TX MSA",2.3486,"San Antonio-New Braunfels, TX HUD Metro FMR Area",1039,981,291200
+42340,Savannah,GA,1.2232967043818956,66245,"Savannah, GA MSA",3.183,"Savannah, GA MSA",1015,996,NA
+42680,Sebastian-Vero Beach,FL,2.0686644422962983,58972,"Sebastian-Vero Beach, FL MSA",3.5618,"Sebastian-Vero Beach, FL MSA",990,930,325000
+42700,Sebring-Avon Park,FL,2.048961688170556,48564,"Sebring, FL MSA",2.7763,"Sebring, FL MSA",774,733,NA
+43300,Sherman-Denison,TX,2.4423956357433796,62919,"Sherman-Denison, TX MSA",1.4319,"Sherman-Denison, TX MSA",879,834,254200
+43420,Sierra Vista-Douglas,AZ,0.5199444967224358,56600,"Sierra Vista-Douglas, AZ MSA",2.1292,"Sierra Vista-Douglas, AZ MSA",726,695,NA
+43620,Sioux Falls,SD,1.6218670933979198,75946,"Sioux Falls, SD MSA",1.3368,"Sioux Falls, SD MSA",772,754,269500
+43900,Spartanburg,SC,1.973500443278561,60472,"Spartanburg, SC MSA",2.462,"Spartanburg, SC MSA",810,781,235400
+44060,Spokane-Spokane Valley,WA,1.055739647791631,65283,"Spokane-Spokane Valley, WA MSA",3.129,"Spokane, WA HUD Metro FMR Area",842,820,382100
+44180,Springfield,MO,1.1246975603199139,56896,"Springfield, MO MSA",1.931,"Springfield, MO HUD Metro FMR Area",640,631,198600
+44700,Stockton,CA,1.1393730053285194,80681,"Stockton-Lodi, CA MSA",3.1599,"Stockton-Lodi, CA MSA",1074,1037,NA
+45300,Tampa-St. Petersburg-Clearwater,FL,1.134923988144695,62951,"Tampa-St. Petersburg-Clearwater, FL MSA",3.782,"Tampa-St. Petersburg-Clearwater, FL MSA",1197,1125,330000
+45540,The Villages,FL,3.6219317478628237,64608,"The Villages, FL MSA",3.5264,"The Villages, FL MSA",819,767,NA
+46060,Tucson,AZ,0.6150541459966966,60667,"Tucson, AZ MSA",2.6978,"Tucson, AZ MSA",810,771,331200
+46140,Tulsa,OK,0.7278260929441495,59696,"Tulsa, OK MSA",2.6116,"Tulsa, OK HUD Metro FMR Area",769,740,221600
+46300,Twin Falls,ID,2.099544982139894,55519,"Twin Falls, ID MSA",1.6313,NA,NA,NA,NA
+46340,Tyler,TX,1.3342561618025917,63115,"Tyler, TX MSA",1.7814,"Tyler, TX MSA",914,954,NA
+46660,Valdosta,GA,0.6695464362850972,42233,"Valdosta, GA MSA",1.9526,"Valdosta, GA MSA",685,634,NA
+47300,Visalia,CA,0.7003900906834186,58209,"Visalia-Porterville, CA MSA",3.2101,"Visalia-Porterville, CA MSA",809,769,NA
+47380,Waco,TX,0.879187291354898,60070,"Waco, TX MSA",1.413,"Waco, TX HUD Metro FMR Area",760,765,NA
+47580,Warner Robins,GA,1.544126442580236,70552,"Warner Robins, GA MSA",1.6699,"Warner Robins, GA HUD Metro FMR Area",910,841,NA
+48300,Wenatchee,WA,0.9485771342985523,65006,"Wenatchee, WA MSA",2.9472,"Wenatchee, WA MSA",976,924,NA
+48900,Wilmington,NC,1.8177187455298425,66939,"Wilmington, NC MSA",2.917,"Brunswick County, NC HUD Metro FMR Area",898,771,355300
+48900,Wilmington,NC,1.8177187455298425,66939,"Wilmington, NC MSA",2.917,"Brunswick County, NC HUD Metro FMR Area",898,924,355300
+48900,Wilmington,NC,1.8177187455298425,66939,"Wilmington, NC MSA",2.917,"Wilmington, NC HUD Metro FMR Area",1050,771,355300
+48900,Wilmington,NC,1.8177187455298425,66939,"Wilmington, NC MSA",2.917,"Wilmington, NC HUD Metro FMR Area",1050,924,355300
+49020,Winchester,VA-WV,1.6199830580855636,72798,"Winchester, VA-WV MSA",2.0131,"Winchester, VA-WV MSA",937,879,NA
+49180,Winston-Salem,NC,0.7494429815677537,57392,"Winston-Salem, NC MSA",2.4865,"Winston-Salem, NC HUD Metro FMR Area",703,712,235600
+49620,York-Hanover,PA,0.5054898343299247,72949,"York-Hanover, PA MSA",2.8127,"York-Hanover, PA MSA",829,782,221000
+49700,Yuba City,CA,0.5909201155381122,63678,"Yuba City, CA MSA",2.5155,"Yuba City, CA MSA",992,947,NA
+49740,Yuma,AZ,1.2487954724438335,57304,"Yuma, AZ MSA",4.8197,"Yuma, AZ MSA",787,754,NA

@@ -1,0 +1,30 @@
+msa,state,cbsa,rent_control,eviction_notice_days,security_deposit_limit
+Huntsville,AL,26620,N,7,1_month_rent
+Fayetteville-Springdale-Rogers,AR,22220,N,3,2_months_rent
+Colorado Springs,CO,17820,N,10,N
+Lakeland-Winter Haven,FL,29460,N,3,N
+North Port-Sarasota-Bradenton,FL,35840,N,3,N
+Palm Bay-Melbourne-Titusville,FL,37340,N,3,N
+Pensacola-Ferry Pass-Brent,FL,37860,N,3,N
+Port St. Lucie,FL,38940,N,3,N
+Atlanta-Sandy Springs-Alpharetta,GA,12060,N,0,N
+Augusta-Richmond County,GA-SC,12260,N,0,N
+Des Moines-West Des Moines,IA,19780,N,3,2_months_rent
+Indianapolis-Carmel-Anderson,IN,26900,N,10,N
+Portland-South Portland,ME,38860,Y,7,2_months_rent
+Fayetteville,NC,22180,N,10,2_months_rent
+Raleigh-Cary,NC,39580,N,10,2_months_rent
+Winston-Salem,NC,49180,N,10,2_months_rent
+Charlotte-Concord-Gastonia,NC-SC,16740,N,10,2_months_rent
+Oklahoma City,OK,36420,N,5,N
+Charleston-North Charleston,SC,16700,N,5,N
+Columbia,SC,17900,N,5,N
+Greenville-Anderson,SC,24860,N,5,N
+Myrtle Beach-Conway-North Myrtle Beach,SC-NC,34820,N,5,N
+Knoxville,TN,28940,N,14,N
+Nashville-Davidson--Murfreesboro--Franklin,TN,34980,N,14,N
+Chattanooga,TN-GA,16860,N,14,N
+McAllen-Edinburg-Mission,TX,32580,N,3,N
+San Antonio-New Braunfels,TX,41700,N,3,N
+Richmond,VA,40060,N,14,2_months_rent
+Spokane-Spokane Valley,WA,44060,N,14,N
