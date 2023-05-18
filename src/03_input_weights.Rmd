@@ -21,7 +21,8 @@ library(readxl)
 ```{r echo=FALSE}
 # list of MSAs without filtering population size
 unfiltered_msas <- read_csv(here("data/intermediate/unfilter_msas.csv"))
-real_estate_metrics <- read_csv(here("data/intermediate/demographic_data.csv")) %>% 
+
+real_estate_metrics <- read_csv(here("data/intermediate/n_real_estate_metrics.csv")) %>% 
   select(cbsa, anchor_city, msa, starts_with("n_")) %>% 
   mutate(cbsa = factor(cbsa))
   
