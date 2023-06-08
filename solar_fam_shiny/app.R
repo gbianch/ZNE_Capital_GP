@@ -2,42 +2,51 @@ library(shiny)
 library(ggplot2)
 library(tidyverse)
 library(bslib) # shiny theme
-library(tidycensus)
-library(googlesheets4)
 library(sf) # map states and US
-library(readxl)
 library(here)
 library(tmap)
 library(tigris)
 library(tmaptools)
+source(here("R/normalize.R"))
+library(rsconnect) # to publish 
+library(shinydashboard)
+library(shinyWidgets)
 
+
+
+#### READ IN SHP DATA ----------------------------------------------
 cbsa_geom <- core_based_statistical_areas(cb = TRUE) %>% 
   mutate(cbsa = factor(CBSAFP))
-
 
 states_geom <- tidycensus::state_laea    #read in the dataset
 
 
-# state and U.S. map coordinates
-states <- map_data("state") %>% 
-  st_as_sf(coords = c("long", "lat"))
-
-usa<- map_data("usa") %>% 
-  st_as_sf(coords = c("long", "lat"))
-
+#### READ IN Metric and criteria DATA ----------------------------------------------
 real_estate_metrics <- read_csv(here("data/intermediate/n_real_estate_metrics.csv")) %>% 
   select(cbsa, anchor_city, msa, starts_with("n_")) %>% 
   mutate(cbsa = factor(cbsa)) %>% 
   rename("n_employ_change" = n_avg_emp_change)
+
+landlord_data <- read_csv(here("data/intermediate/landlord_data.csv")) %>% 
+  mutate(
+    security_deposit_limit_num = case_when(
+      security_deposit_limit == "N" ~ 1.0, 
+      security_deposit_limit == "1_month_rent" ~ 0.0,
+      security_deposit_limit == "2_months_rent" ~ 0.5)) %>% 
+  mutate(n_eviction_notice = 1- normalize(eviction_notice_days),
+         n_security_deposit = normalize(security_deposit_limit_num)) %>% 
+  select(cbsa, rent_control, n_eviction_notice, n_security_deposit)
 
 criteria_unweighted <- read_csv(here("data/intermediate/unwt_criteria_scores.csv")) %>% 
   mutate(cbsa = factor(cbsa),
          real_estate_score = 0) 
 
 
+#### start of shiny app----------------------------------------------
 ui <- fluidPage(
+  
   # Application title
-  titlePanel("title"),
+  titlePanel("Identifying favorable Areas for investing in Rooftop Solar on Multifamily Housing"),
   navbarPage("solar fam",
              theme = bs_theme(bootswatch = "cerulean", primary = "#8aab57"),
              ### tab 1 - background
@@ -49,24 +58,23 @@ ui <- fluidPage(
                         h5("Importance & Objectives"),
                         p("The main objective of this project was to develop a model that includes seven criteria to identify U.S. MSAs ideal for installing rooftop solar PV systems on multifamily housing complexes. This model was designed to be flexible enough to capture the perspectives and desires of the various stakeholders for such investments, including real estate companies interested in solar PV, solar installation nonprofits, and state governments, which can express their priorities through weights assigned for each of the seven criteria. Each criterion consists of indicator metrics calculated from data. Each criterion is multiplied by its respective user-assigned weight to determine the investment favorability score. Once created, the model was employed to identify MSAs in the United States where the acquisition of multifamily housing complexes and installation of rooftop solar PV was most favorable for the client, Zero Net Energy (ZNE) Capital. In addition to the client scenario, an example equity-centered scenario was calculated using this model by adjusting the seven criteria weights, giving higher weighting to health impacts and CO2 emissions avoided. These weights can be adjusted based on the priorities of the model user."),
                         h5("Model Flow Chart"),  ### Add model image here
-                        p("Visualization of methodology to calculate investment favorability score for each metropolitan area. The investment favorability score of rooftop solar on apartment buildings was calculated as a weighted additive total of the seven criteria scores."),
-                        div(img(src = "model_no_weights.jpg",  width = "1000", height = "500"), style="text-align: center;"),
+                        p(strong("Figure 1."), "Visualization of methodology to calculate investment favorability score for each metropolitan area. The investment favorability score of rooftop solar on apartment buildings was calculated as a weighted additive total of the seven criteria scores."),
+                        div(class = "center-image", img(src = "model_no_weights.jpg", width = "1000px", height = "500px")),
                         p("Weights for each criterion can be adjusted in the model based on user priorities. The client’s weights reflect relative importance in ZNE Capital’s decision making for their business model. An example equity-centric scenario was included to represent non-profit or government stakeholders that maximize positive social and environmental impact by prioritizing CO2 abatement potential and health impacts."),
                       ) ### end mainPanel
              ), # ## END of tab 1
-             ### tab2
+             #### beginning of tab 2 ----------------------------------------------
              tabPanel("Use the Model",
                       tabsetPanel(
                         tabPanel("Step 1: Demographic Preferences",
                                  sidebarLayout(
                                    sidebarPanel(
-      
-                                      # inputs for real estate metrics
+                                     # inputs for real estate metrics
                                       numericInput(inputId = "PopChgWtInput", label = "Population Change",
-                                                   value = 0,width = "175px", min = 0.0,max = 1.0,step = 0.05), # end RE weight input
+                                                   value = 0.35,width = "175px", min = 0.0,max = 1.0,step = 0.05), # end RE weight input
                                       
                                       numericInput(inputId = "EmployWtInput", label = "Employment Change",
-                                                   value = 0.0, width = "175px", min = 0.0,max = 1.0,step = 0.05),
+                                                   value = 0.20, width = "175px", min = 0.0,max = 1.0,step = 0.05),
                                       
                                       numericInput(inputId = "RentChgWtInput", label = "Rent Change",
                                                    value = 0.10,width = "175px", min = 0.0, max = 1.0, step = 0.05),
@@ -80,13 +88,29 @@ ui <- fluidPage(
                                       numericInput(inputId = "IncomeHomeWtInput", label = "Income to Home Price",value = 0.10,
                                                    width = "175px",min = 0.0,max = 1.0, step = 0.05), # end health impact weight input
                                 
-                                      actionButton(inputId = "EnterREWeights", label = "Calculate")), # end sidebar panel
+                                      actionButton(inputId = "EnterREWeights", label = "Enter Weights")), # end sidebar panel
                                  
-                                         
                                    mainPanel(dataTableOutput(outputId = "RE_wt_table"))
                                  )), # end step 1 tab panel
                         tabPanel("Step 2: Landlord Inputs",
-                                 mainPanel(plotOutput(outputId = "RE_map"))), # end step 2 tab panel
+                                 sidebarLayout(
+                                   sidebarPanel(
+                                     materialSwitch(inputId = "RentControl",
+                                                    label = "Rent Control",
+                                       value = FALSE),
+                                     numericInput(inputId = "EvNoWtInput", label = "Eviction Notice",
+                                              value = 0.80,width = "175px", min = 0.0,max = 1.0,step = 0.05), # end RE weight input
+                                 
+                                 numericInput(inputId = "SeDepWtInput", label = "Security Deposit Limit",
+                                              value = 0.20, width = "175px", min = 0.0,max = 1.0,step = 0.05),
+                                 actionButton(inputId = "EnterLandlordWeights", label = "Enter Weights")),
+              
+                                
+                                 mainPanel(h5("Weights"),
+                                           verbatimTextOutput(outputId = "switch_test"),
+                                           p("The specific landlord policies, or tenant protection laws, contributing to this criteria were whether or not rent control policies were present, the number of days required for an eviction notice, and the minimum security deposit amount (Law Depot, 2023). Tenant protection laws vary by state. For the client scenario, states with landlord-friendly policies received higher landlord criterion scores when calculating each MSA's investment scores."))
+                                   )), # end step 2 tab panel
+###### start of criteria weightst tab -----------------------------------------
                         tabPanel("Step 3. Criteria Weights", 
                                  br(),
                                  sidebarLayout(
@@ -110,19 +134,22 @@ ui <- fluidPage(
                                                              width = "175px",min = 0.0,max = 1.0, step = 0.05), # end health impact weight input
                                      numericInput(inputId = "SolarIrrWtInput", label = "Solar Financials",
                                                           value = 0.11, width = "175px", min = 0.0, max = 1.0, step = 0.05), # end irr input
-                                     actionButton(inputId = "EnterWeights", label = "Calculate")), # end sidebar panel
+                                     actionButton(inputId = "EnterWeights", label = "Enter Weights"),
+                                     verbatimTextOutput(outputId = "wt_sum")), # end sidebar panel
                                    
                                    mainPanel( 
-                                     p("information about each criteria"),
+                                     h5("Weight Significance"),
+                                     p("The weights entered for each criteria represent the importance of that criteria to invest in rooftop solar on multifamily housing. Higher values indicate greater importance."),
                                      p("Real Estate:"),
-                                     p("Landlord"),
+                                     p("The Landlord Policy"),
+                                     
                                      p("Electricity Generation:"),
                                      p("Solar Financials:"),
-                                     verbatimTextOutput(outputId = "wt_sum"),
                                      h5("Ranking the top metropolitan areas based on solar PV investment favorability"),
                                      plotOutput(outputId = "wt_criteria_chart"))
                                    ) # end sidebar layout
                                  ), # end tab panel
+
                         tabPanel("Export Results", 
                                  mainPanel(dataTableOutput(outputId = "wt_table_test")))
                         
@@ -132,14 +159,13 @@ ui <- fluidPage(
              
              tabPanel("Project Findings",
                       mainPanel(tmapOutput("RE_tmap"))), # end tab panel
-             tabPanel("Data Exploration", icon = icon("info-circle"),
+             tabPanel("About the Data", icon = icon("info-circle"),
                       tabsetPanel(
-                        tabPanel("Demographics",
+                        tabPanel("Real Estate",
+                                 br(),
+                                 p("The metrics included in this criteria were population growth, employment growth, average annual occupancy, annual rent change, the ratios of median annual rent to median income, and median income to median home price. The data for each metric was gathered and normalized individually before being weighted and used to calculate the Real Estate score."),
                                  h5("Population Growth"),
-                                 p("The metrics included in this criteria were population growth, employment growth, average annual occupancy, annual rent change, the ratios of median annual rent to median income, and median income to median home price. The data for each metric was gathered and normalized individually before being weighted and used to calculate the Real Estate score (see section 2.7, Data Normalization and Weights)."),
-                                  p("Population growth in a MSA is a commonly used real estate metric to gauge the demand for housing. The National Association of Realtors (NAR) identifies population growth as a key factor in determining a region's real estate market potential and a strong indicator of future demand for housing (Tracey, 2022). The U.S. Census Bureau provides accurate demographic data at the MSA level, making it a reliable source for population estimates. To quantify the change in MSA populations, the group utilized the annual population estimates provided by the U.S. Census Bureau between April 1, 2020, and July 1, 2021. Additionally, the group excluded MSAs with a population growth rate below 0.5% to streamline the analysis. Population change was calculated using the following equation: Population change =2021 population estimate- 2020 population estimate2020 population estimate100"),
-
-                                 
+                                  p("Population growth in a MSA is a commonly used real estate metric to gauge the demand for housing. The National Association of Realtors (NAR) identifies population growth as a key factor in determining a region's real estate market potential and a strong indicator of future demand for housing (Tracey, 2022). The U.S. Census Bureau provides accurate demographic data at the MSA level, making it a reliable source for population estimates. To quantify the change in MSA populations, the group utilized the annual population estimates provided by the U.S. Census Bureau between April 1, 2020, and July 1, 2021. Additionally, the group excluded MSAs with a population growth rate below 0.5% to streamline the analysis."),
                              
                                  h5("Rent Change"),
                                  p("Median rent rates for fiscal year 2021 and 2022 were gathered for each MSA from the U.S. Department of Housing and Urban Development (HUD) and represent rates for one bedroom apartments (Office of Policy Development and Research, 2021). HUD is a government agency that collects and maintains vast amounts of data related to housing, community development, and urban affairs, which is rigorously reviewed, analyzed, and made available to the public. The agency is widely regarded as a reliable source for its’ standardized methodologies for data collection."),
@@ -158,11 +184,28 @@ ui <- fluidPage(
                                  
                                 
                                 h5("Apartment Occupancy Rates"),
-                                 p("Occupancy rate is the ratio of rented units to the total available units for rent in an MSA. Yardi Matrix is a robust research platform that gives users access to property-level information, including occupancy rates, for multifamily properties in the United States (Yardi Systems, n.d.). Students used Yardi Matrix to collect average occupancy rates at the city level, identifying an anchor city based on the largest population size for MSAs comprising more than one city.  For this metric, lower occupancy rates in an MSA signify lower demand for rental units."),
-                                 ),# end demographics tab panel
-                        tabPanel("Climate Risk"),
-                        tabPanel("reOpt Model")
-                      )),
+                                 p("Occupancy rate is the ratio of rented units to the total available units for rent in an MSA. Yardi Matrix is a robust research platform that gives users access to property-level information, including occupancy rates, for multifamily properties in the United States (Yardi Systems, n.d.). Students used Yardi Matrix to collect average occupancy rates at the city level, identifying an anchor city based on the largest population size for MSAs comprising more than one city.  For this metric, lower occupancy rates in an MSA signify lower demand for rental units.")
+                                ),# end demographics tab panel
+                        ##### start climate risk tab-----------------------------------------
+                        tabPanel("Climate Risk",
+                                 h5("Climate Risk Avoidance Overview "),
+                                 HTML("Climate risk avoidance was incorporated into the model using the overall risk score from the <a href='https://hazards.fema.gov/nri/map'>National Risk Index</a> (NRI) created by the Federal Emergency Management Agency (FEMA). The overall risk score is a representation of risk relative to the expected annual loss, social vulnerability, and community resilience of all other counties (see section 5.2). Areas with a high climate risk score according to the NRI were ranked lower in the investment favorability score."),
+                                 h5("National Risk Index Terms and Definitions"),
+                                 p(strong("Community resilience:"),
+                                   "FEMA draws this from the National Institute of Standards and Technology which defines community resilience as “the ability of a community to prepare for anticipated natural hazards, adapt to changing conditions, and withstand and recover rapidly from disruptions."),
+                                 p(strong("Expected annual loss:"),
+                                 "This is the average economic loss from natural hazards per year. Expected annual loss is computed for the different hazard types since some hazards impact buildings, some impact agriculture, etc. The expected annual loss for drought exclusively quantifies harm to agriculture."),
+                                  p(strong("Social vulnerability:"),"This metric is calculated using 29 different socioeconomic variables, including median gross rent for renter-occupied housing units, per capita income, percentage of population over 25 with <12 years of education, percentage of population speaking English as second language (with limited English proficiency), and data on racial demographics."),
+                                 h5("Risk Index Calculation"),
+                                 p("FEMA’s overall risk score was calculated using the “Generalized National Risk Index Risk Equation” (FEMA, 2021, pg. 35), which multiplies the expected annual loss by social vulnerability (a risk-compounding factor) and inverse community resilience (a risk-reducing factor). These calculations were done on both county and census tract levels; county-level data was used in this study because it was closer in scale to the MSAs used for other model criteria. Each component of the risk score was calculated relative to other counties (Federal Emergency Management Agency, 2021). For detailed information on FEMA’s source data, see Appendix G. A low overall risk score is more favorable since it indicates a low threat of damage from natural disasters and a high ability of a community to recover if a natural disaster occurs. The overall risk score was subtracted from 1 to compute the climate risk avoidance score. Higher climate risk avoidance scores represent lower climate risk and are preferred to add to the investment favorability score.")
+                        ), # end climate risk tab 
+                                
+                        tabPanel("REopt Tool",
+                                 h5("REopt Overview"),
+                                 HTML("The <a href='https://reopt.nrel.gov/tool'>REopt Tool</a>  is a publicly available, open-source web tool created by the National Renewable Energy Laboratory (NREL) that was used in this project to analyze the solar electricity generation, internal rate of return (IRR), CO2 abatement potential, and human health impacts of installing rooftop solar on a standard apartment building (4 floors, 33,740 square feet). REopt was chosen for this analysis because by modeling rooftop solar energy generation and demand for an apartment building, it was able to model cohesive metrics across economic, environmental, and social criteria. Furthermore, REopt drew from other reliable national databases, including PVWatts,  EPA AVERT, and OpenEI. All input values except location, electricity rate, and net metering system capacity were held constant in order to compare MSAs accurately. For MSAs that contained multiple cities, an “anchor city” was selected based on population size; a list of anchor cities can be found in the appendix. The REopt model calculated all metrics using both the optimal recommended solar installation and a business-as-usual (no solar) scenario to provide a baseline for comparison.")
+                      ),
+                      tabPanel("References"))
+                      ) # end tabset panel,
 
   ) ### end nav bar
   
@@ -172,7 +215,7 @@ ui <- fluidPage(
 # Define server logic 
 server <- function(input, output) {
   
-  ### real estate metric weight inputs
+###### real estate metric weight inputs and outputs ---------------------------
   REweight_inputs <- reactive({
     c(input$PopChgWtInput, 
       input$EmployWtInput,
@@ -206,12 +249,8 @@ server <- function(input, output) {
    # pivot_longer(cols = 2:7,names_to = "metric",values_to = "score")
 
   })
-    
   
-
-  
-  
-#### store wt_real estate score to calculate investment score
+# store wt_real estate score to calculate investment score
   real_estate_score <- reactive({
     req(input$EnterREWeights)
     wt_real_estate_metrics <- real_estate_metrics %>% 
@@ -228,11 +267,39 @@ server <- function(input, output) {
     return(wt_real_estate_metrics$real_estate_score)
   })
   
-  output$RE_score_test <- renderPrint({
-  real_estate_score()
+  ###### landlord metric weight inputs and outputs ---------------------------
+  testswitch <- reactive({
+      rent_control_cbsa <- NULL
+
+      if (input$RentControl == FALSE){
+        rent_control_cbsa <- landlord_data %>% 
+          filter(rent_control == "N") 
+      }
+      rent_control_cbsa <- landlord_data
+      
+      return(rent_control_cbsa$cbsa)
   })
   
-  ## criteria weight inputs
+  output$switch_test <- renderPrint({
+    req(input$EnterLandlordWeights)
+    testswitch()
+    
+  })
+    
+    
+  landlord_score <- reactive({
+    wt_landlord_metrics <- landlord_data %>% 
+      mutate(wt_security_deposit= n_security_deposit * input$SeDepWtInput,
+             wt_eviction_notice = n_eviction_notice * input$EvNoWtInput) %>% 
+      select(-starts_with("n_")) %>% 
+      mutate(landlord_score = apply(.[,wt_security_deposit:wt_eviction_notice], 1, sum)) %>% 
+      mutate_if(is.numeric, round, digits = 4) 
+
+    return(wt_landlord_metrics$landlord_score)
+  })
+
+  
+####### criteria weight inputs ------------------------------------------
   weight_inputs <- reactive({
     c(input$REWtInput, input$LandlordWtInput,
                              input$ElectrictyWtInput,
@@ -270,15 +337,21 @@ server <- function(input, output) {
     return(wt_criteria)
   }
   
-  
+  ### output for weighted criteria and total scores -------------------------
   output$wt_table_test <- renderDataTable({
+    req(input$EnterLandlordWeights)
     req(input$EnterWeights)
     wt_real_estate_score <- real_estate_score()
-    criteria_unweighted$real_estate_score <- real_estate_score()
+    wt_landlord_score <- landlord_score()
+
+    criteria_unweighted$real_estate_score <- wt_real_estate_score
+    criteria_unweighted$landlord_score <- wt_landlord_score
+
     wt_data <- calculate_wt_criteria(criteria_unweighted) %>% 
-      mutate("Investment Favorability Score" = apply(.[,4:10], 1, sum)) %>%
+      filter(cbsa %in% testswitch()) %>% 
+      mutate("Investment Favorability Score" = apply(.[,4:10], 1, sum)) %>% 
     select(!cbsa) %>% 
-      unite("City, ST", city_msa:state, sep = ", ")
+      unite("City, State", city_msa:state, sep = ", ")
     return(wt_data)
   })
   
@@ -288,9 +361,14 @@ server <- function(input, output) {
   output$wt_criteria_chart <- renderPlot({
     req(input$EnterWeights)
     wt_real_estate_score <- real_estate_score()
+    wt_landlord_score <- landlord_score()
+    
+    
     criteria_unweighted$real_estate_score <- wt_real_estate_score
+    criteria_unweighted$landlord_score <- wt_landlord_score
     
     wt_data <- calculate_wt_criteria(criteria_unweighted) %>% 
+      filter(cbsa %in% testswitch()) %>% 
       pivot_longer(cols = 4:10, # selecting criteria cols
                    names_to = "criteria",
                    values_to = "wt_criteria_score")  %>% 
@@ -306,33 +384,35 @@ server <- function(input, output) {
         scale_x_continuous(limits = c(0, 1.0), expand = c(0,0), breaks=seq(0, 1.0, 0.1))
   })
   
-output$RE_map <- renderPlot({
+criteria_scores <- reactive({
+  req(input$EnterWeights)
   wt_real_estate_score <- real_estate_score()
-  cbsa_shp <- cbsa %>% 
-    mutate(CBSAFP = as.factor(CBSAFP)) %>% 
-    inner_join(wt_real_estate_score, by = c("CBSAFP" = "cbsa")) # merge msa data with shape files
-  # map of U.S. with MSAs highlighted
-  ggplot() +
-    geom_polygon(data = states,
-                 aes(x = long, y = lat,
-                     group = group)) + 
-    geom_sf (data = cbsa, fill = "lightgreen") +
-    labs(title = "Metro Areas included in this analysis", x = "", y = "") +
-    theme_void()
+  wt_landlord_score <- landlord_score()
+  
+  criteria_unweighted$real_estate_score <- wt_real_estate_score
+  criteria_unweighted$landlord_score <- wt_landlord_score
+  
+  wt_data <- calculate_wt_criteria(criteria_unweighted) 
+  
+  return(wt_data)
+  
 })
 
 output$RE_tmap <- renderTmap({
-
   wt_real_estate_score <- real_estate_score()
-  criteria_unweighted$real_estate_score <- wt_real_estate_score
+  wt_landlord_score <- landlord_score()
+
   
-  wt_data <- calculate_wt_criteria(criteria_unweighted) 
+  criteria_unweighted$real_estate_score <- wt_real_estate_score
+  criteria_unweighted$landlord_score <- wt_landlord_score
+  
+  wt_data <- calculate_wt_criteria(criteria_unweighted) %>% 
+    filter(cbsa %in% testswitch())
 
   cbsa_RE <- cbsa_geom %>% inner_join(wt_data)
   
   tm_shape(states_geom) +
     tm_fill("grey") +
-    
     tm_shape(cbsa_RE) +
       tm_fill("Real Estate", palette = "BuGn") 
       
