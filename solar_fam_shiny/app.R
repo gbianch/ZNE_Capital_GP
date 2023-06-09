@@ -12,6 +12,7 @@ library(rsconnect) # to publish
 library(shinydashboard)
 library(shinyWidgets)
 library(tidycensus)
+library(shiny.router)
 
 
 
@@ -35,9 +36,9 @@ landlord_data <- read_csv(here("data/intermediate/landlord_data.csv")) %>%
       security_deposit_limit == "1_month_rent" ~ 0.0,
       security_deposit_limit == "2_months_rent" ~ 0.5)) %>% 
   mutate(n_eviction_notice = 1- normalize(eviction_notice_days),
-         n_security_deposit = normalize(security_deposit_limit_num),
+         n_security_deposit = security_deposit_limit_num,
          cbsa = as.character(cbsa)) %>% 
-  select(cbsa, rent_control, n_eviction_notice, n_security_deposit)
+  select(cbsa, rent_control, n_eviction_notice, n_security_deposit) 
 
 criteria_unweighted <- read_csv(here("data/intermediate/unwt_criteria_scores.csv")) %>% 
   mutate(cbsa = as.character(cbsa)) 
@@ -66,36 +67,41 @@ Future studies can utilize the reproducible code to inform decisions on where to
 ui <- fluidPage(
   
   # Application title
-  titlePanel(div("Identifying areas to invest in Rooftop Solar on Multifamily Housing", 
-                 tags$img(src = "bren-leaf-logo.jpg", align="right", height="40px", width="40px")),
+  titlePanel(div(h4("Identifying areas to invest in Rooftop Solar on Multifamily Housing", 
+                 tags$img(src = "bren-leaf-logo.jpg", align="right", height="30px", width="30px"))),
              windowTitle="solar family"),
   navbarPage("solar fam",
              theme = bs_theme(bootswatch = "cerulean", primary = "#8aab57"),
              ### tab 1 - background
-             tabPanel("Landing Page", icon=icon("home", lib="glyphicon"), 
+             tabPanel("Landing Page", icon=icon("home", lib="glyphicon"), id="home", 
                       mainPanel(
-                        h5("How to use the shiny app"),
+                        h5("How to navigate the shiny app"),
                         p("This web app was created to show how several different criteria can impact the
                           investment feasability of rooftop solar on multifamily housing across the country.
                           The model includes 7 criteria that factor into the investment favorability score, in which
                           stakeholders can adjust the weight of each based on the relative importance the criteria given their priorities when
                           investing in multifamily housing."),
                         br(),
-                        p("To start, click on the Use the Model tab, and it will prompt you through each step. After each step,
-                          be sure to click the enter button to initiate analysis.", strong("Step 1"), "allows the user to input weights for the 
+                        p("To start, click on the", strong("Use the Model"), "tab, and it will prompt you through each step. After each step,
+                          be sure to click the enter button to initiate analysis:"),
+                        tags$ul(
+                          tags$li(strong("Step 1 "), "allows the user to input weights for the 
                           metrics in the real estate criteria. User should enter higher weights for metrics they deem more signifcant
-                          for the real estate criteria.", strong("Step 2"), "allows the user to input landlord policy preferences. The user can select to include
+                          for the real estate criteria."),
+                          tags$li(strong("Step 2."), "allows the user to input landlord policy preferences. The user can select to include
                           or remove areas in states that allow rent control. In addition, the user can input weights for the two metrics within
-                          the landlord policy criteria.", strong("Step 3"), "allows the user to input weights for the 7 criteria that make up the investment
-                          favorability score"),
+                          the landlord policy criteria."),
+                          tags$li(strong("Step 3"), "allows the user to input weights for the 7 criteria that make up the investment
+                          favorability score")),
+                 
                         p(strong("Note:"), "the weights for each step are set at the default values used in the client scenario. Findings for
-                          the equity-centric scenario can be found in the Project tab"),
-                        HTML("<ul><li> The 'Project' tab:")
+                          the equity-centric scenario can be found in the", strong("Project"), "tab"),
                         
-                        HTML("This analysis and interactive web-app is limited to 29 metropolitan statisticals areas, but the
+                        
+                        p(HTML("This analysis and interactive web-app is limited to 29 metropolitan statisticals areas, but the
                           methodology can be replicated for to analyze additional metro areas in future studies. For more information regarding the project 
-                          background and metholodology, please refer to the <a href='https://bren.ucsb.edu/projects/constructing-model-identify-markets-rooftop-solar-multifamily-housing'> Bren Project Directory </a> 
-                          for the technical report and the <a href='https://github.com/gbianch/ZNE_Capital_GP'> GitHub repository </a>"),
+                          background and metholodology, please refer to the <a href='https://bren.ucsb.edu/projects/constructing-model-identify-markets-rooftop-solar-multifamily-housing'> Bren Project Directory</a> 
+                          for the technical report and the <a href='https://github.com/gbianch/ZNE_Capital_GP'> GitHub repository. </a>")),
                         
                         
                         p("Weights for each criterion can be adjusted in the model based on user priorities. The client’s weights reflect relative importance in ZNE Capital’s decision making for their business model. An example equity-centric scenario was included to represent non-profit or government stakeholders that maximize positive social and environmental impact by prioritizing CO2 abatement potential and health impacts."),
@@ -107,7 +113,7 @@ ui <- fluidPage(
                       ) ### end mainPanel
              ), # ## END of tab 1
              #### beginning of tab 2 ----------------------------------------------
-             tabPanel("Use the Model", icon=icon("solar-panel"),
+             tabPanel(title="Use the Model",  icon=icon("solar-panel"),
                       tabsetPanel(
                         tabPanel("Step 1: Real Estate Metrics",
                                  sidebarLayout(
@@ -134,16 +140,20 @@ ui <- fluidPage(
                                      actionButton(inputId = "EnterREWeights", label = "Enter Weights")), # end sidebar panel
                                    
                                    mainPanel(h5("Real Estate Metric Significance"),
-                                     p(RE_input_text),
+                                     p("RE_input_text"),
+                                     dataTableOutput("RE_wt_table"),
+                                    
                                      tmapOutput("RE_tmap"))
                                  )), # end step 1 tab panel
                         tabPanel("Step 2: Landlord Inputs",
                                  sidebarLayout(
                                    sidebarPanel(
-                                     materialSwitch(inputId = "RentControl",
-                                                    label = "Rent Control",
-                                                    value = FALSE),
-                                     numericInput(inputId = "EvNoWtInput", label = "Eviction Notice",
+                                     switchInput(inputId = "RentControl",
+                                                 label= "Include areas with Rent Control",
+                                                 value = TRUE,
+                                                 onLabel = "YES",
+                                                 offLabel= "NO", width="300px"),
+                                     numericInput(inputId = "EvNoWtInput", label = "Eviction Timeliness",
                                                   value = 0.80,width = "175px", min = 0.0,max = 1.0,step = 0.05), # end RE weight input
                                      
                                      numericInput(inputId = "SeDepWtInput", label = "Security Deposit Limit",
@@ -152,6 +162,7 @@ ui <- fluidPage(
                                    
                                    mainPanel(h5("Weights"),
                                              verbatimTextOutput(outputId = "switch_test"),
+                                             dataTableOutput(outputId = "landlord_table"),
                                              p("The specific landlord policies, or tenant protection laws, contributing to this criteria were whether or not rent control policies were present, the number of days required for an eviction notice, and the minimum security deposit amount (Law Depot, 2023). Tenant protection laws vary by state. For the client scenario, states with landlord-friendly policies received higher landlord criterion scores when calculating each MSA's investment scores."))
                                  )), # end step 2 tab panel
                         ###### start of criteria weightst tab -----------------------------------------
@@ -194,6 +205,8 @@ ui <- fluidPage(
                                      plotOutput(outputId = "wt_criteria_chart"))
                                  ) # end sidebar layout
                         ), # end tab panel
+                        tabPanel("Map Results", icon=icon("globe"), 
+                                 mainPanel("")),
                         
                         tabPanel("Export Results", icon=icon("circle-arrow-down"), 
                                  mainPanel(dataTableOutput(outputId = "wt_table_test")))
@@ -216,14 +229,14 @@ ui <- fluidPage(
                                   PV was most favorable for the client, Zero Net Energy (ZNE) Capital. In addition to the client scenario, an example equity-centered scenario was calculated using this model by adjusting
                                   the seven criteria weights, giving higher weighting to health impacts and CO2 emissions avoided. These weights can be adjusted based on the priorities of the model user."))
                         )), # end about the projct tab) 
-            tabPanel("The Team", icon = icon("solid users")),
+            tabPanel("The Team", icon = icon("users", lib="font-awesome")),
 
                       
                       
                                
                                 
 #### aAbout the project tab -------------------------------------------------------------            
-              tabPanel("The Data", icon=icon("memo-circle-info"),
+              tabPanel("The Data", icon=icon("circle-info", lib="font-awesome"),
                       tabsetPanel(
                         tabPanel("Real Estate",
                                  br(),
@@ -275,9 +288,10 @@ ui <- fluidPage(
   
 ) ### end fluidPage
 
-
+# SERVER##########################################################################
 # Define server logic 
 server <- function(input, output) {
+
   
   ###### real estate metric weight inputs and outputs ---------------------------
   REweight_inputs <- reactive({
@@ -289,7 +303,7 @@ server <- function(input, output) {
       input$RentIncomeWtInput)  
   })
   
-  
+
   # real estate weighted table
   output$RE_wt_table <- renderDataTable({
     req(input$EnterREWeights)
@@ -301,17 +315,16 @@ server <- function(input, output) {
              wt_rent_income = n_rent_to_income* input$RentIncomeWtInput,
              wt_income_homeprice = n_income_to_homeprice* input$IncomeHomeWtInput) %>% 
       select(!starts_with("n_")) %>% 
-      mutate(real_estate_score = apply(.[,4:9], 1, sum)) %>% 
-      mutate_if(is.numeric, round, digits = 4) %>% 
-      select(!c(msa, anchor_city)) %>% 
-      rename("Population Change"="wt_pop_change",
-             "Employment Change"="wt_employ_change",
-             "Occupancy Rate"="wt_occ", 
-             "Rent Change"="wt_rent_change",
-             "Rent to Income"="wt_rent_income",
-             "Income to Homeprice"="wt_income_homeprice") #%>% 
-    # pivot_longer(cols = 2:7,names_to = "metric",values_to = "score")
-    
+       mutate(real_estate_score = apply(.[,4:9], 1, sum)) %>% 
+       mutate_if(is.numeric, round, digits = 2) %>% 
+       select(!c(msa, anchor_city)) %>% 
+       rename("Population Change"="wt_pop_change",
+              "Employment Change"="wt_employ_change",
+              "Occupancy Rate"="wt_occ", 
+              "Rent Change"="wt_rent_change",
+              "Rent to Income"="wt_rent_income",
+              "Income to Homeprice"="wt_income_homeprice") 
+       
   })
   
   # store wt_real estate score to calculate investment score
@@ -326,45 +339,45 @@ server <- function(input, output) {
              wt_income_homeprice = n_income_to_homeprice * input$IncomeHomeWtInput) %>% 
       select(-starts_with("n_")) %>% 
       mutate(real_estate_score = rowSums(.[4:9])) %>% 
-      mutate_if(is.numeric, round, digits = 4)
+      mutate_if(is.numeric, round, digits = 2)
     
     return(wt_real_estate_metrics$real_estate_score)
   })
   
   ###### landlord metric weight inputs and outputs ---------------------------
-  testswitch <- reactive({
-    
-    if (input$RentControl == FALSE){
-      rent_control_cbsa <- landlord_data %>% 
-        filter(rent_control == "N") 
+  testswitch <- reactive({ input$RentControl})
+  
+  rent_control_cbsas <- reactive({
+    if (testswitch() == "TRUE"){
+      rent_control_cbsa <- landlord_data 
+    }   
+    else{rent_control_cbsa <- landlord_data %>% 
+      filter(rent_control == "N")
     }
-    
-    rent_control_cbsa <- landlord_data
-    
     return(rent_control_cbsa$cbsa)
   })
-  
-  output$switch_test <- renderPrint({
-    testswitch()
-    
-  })
-  
+#-----------------------------
+
   
   landlord_score <- reactive({
+    req(input$EnterLandlordWeights)
     wt_landlord_metrics <- landlord_data %>% 
       mutate(wt_security_deposit= n_security_deposit * input$SeDepWtInput,
              wt_eviction_notice = n_eviction_notice * input$EvNoWtInput) %>% 
       select(-starts_with("n_")) %>% 
-      mutate(landlord_score = apply(.[,wt_security_deposit:wt_eviction_notice], 1, sum)) %>% 
-      mutate_if(is.numeric, round, digits = 4) 
+      mutate(landlord_score = apply(.[,3:4], 1, sum)) %>% 
+      mutate_if(is.numeric, round, digits = 2) %>% 
+      arrange(cbsa)
     
     return(wt_landlord_metrics$landlord_score)
   })
   
   
+
   ####### criteria weight inputs ------------------------------------------
   weight_inputs <- reactive({
-    c(input$REWtInput, input$LandlordWtInput,
+    c(input$REWtInput, 
+      input$LandlordWtInput,
       input$ElectrictyWtInput,
       input$CO2WtInput,
       input$ClimateRiskWtInput,
@@ -374,7 +387,7 @@ server <- function(input, output) {
   
   # text to show weight sum
   output$wt_sum <- renderPrint({
-    sum(weight_inputs())
+    list(weight_inputs())
   })
   
   
@@ -395,46 +408,49 @@ server <- function(input, output) {
              "CO2 Emissions Abated"="wt_co2",
              "Climate Risk Avoided"="wt_climate_risk",
              "Reduced Health Impacts"="wt_health_impacts", 
-             "Solar Financials"="wt_solar_irr") 
-    
+             "Solar Financials"="wt_solar_irr") %>% 
+      mutate_if(is.numeric, round, digits = 2)
+
     return(wt_criteria)
   }
   
   ### output for weighted criteria and total scores -------------------------
-  output$wt_table_test <- renderDataTable({
-    req(input$EnterWeights)
+  filtered_criteria_scores <- reactive({
     wt_real_estate_score <- real_estate_score()
     wt_landlord_score <- landlord_score()
+    rc_cbsas <- rent_control_cbsas() 
     
     criteria_unweighted$real_estate_score <- wt_real_estate_score
     criteria_unweighted$landlord_score <- wt_landlord_score
-    rent_control_cbsas <- testswitch() 
     
     wt_data <- calculate_wt_criteria(criteria_unweighted) %>% 
-      filter(cbsa %in% rent_control_cbsas) %>% 
-      mutate("Investment Favorability Score" = apply(.[,4:10], 1, sum)) %>% 
-      select(!cbsa) %>% 
-      unite("City, State", city_msa:state, sep = ", ")
+      filter(cbsa %in% rc_cbsas)
+
     return(wt_data)
   })
   
+  output$wt_table_test <- renderDataTable({
+    filtered_criteria_scores()  %>% 
+      mutate("Investment Favorability Score" = apply(.[,4:10], 1, sum)) # %>% 
+    #  unite("City, State", city_msa:state, sep = ", ") %>% 
+     # select(!cbsa)
+    })
   
   
   ## output weighted criteria into bar chart
   output$wt_criteria_chart <- renderPlot({
     req(input$EnterWeights)
-    wt_real_estate_score <- real_estate_score()
-    wt_landlord_score <- landlord_score()
-    rent_control_cbsas <- testswitch() 
+     wt_real_estate_score <- real_estate_score()
+     wt_landlord_score <- landlord_score()
+     rent_control_cbsas <- rent_control_cbsas()
+    # 
+     criteria_unweighted$real_estate_score <- wt_real_estate_score
+     criteria_unweighted$landlord_score <- wt_landlord_score
+
     
-    
-    criteria_unweighted$real_estate_score <- wt_real_estate_score
-    criteria_unweighted$landlord_score <- wt_landlord_score
-    
-    wt_data <- calculate_wt_criteria(criteria_unweighted) %>% 
-      filter(cbsa %in% rent_control_cbsas) %>% 
-      pivot_longer(cols = 4:10, # selecting criteria cols
-                   names_to = "criteria",
+     wt_data <- filtered_criteria_scores() %>% 
+       pivot_longer(cols = 4:10, # selecting criteria cols
+                    names_to = "criteria",
                    values_to = "wt_criteria_score")  %>% 
       unite("msa_state", city_msa:state, sep = ", ")
     
@@ -448,31 +464,16 @@ server <- function(input, output) {
       scale_x_continuous(limits = c(0, 1.0), expand = c(0,0), breaks=seq(0, 1.0, 0.1))
   })
   
-  criteria_scores <- reactive({
-    wt_real_estate_score <- real_estate_score()
-    wt_landlord_score <- landlord_score()
+
+
+
     
-    criteria_unweighted$real_estate_score <- wt_real_estate_score
-    criteria_unweighted$landlord_score <- wt_landlord_score
-    
-    wt_data <- calculate_wt_criteria(criteria_unweighted) 
-    
-    return(wt_data)
-    
-  })
-  
   output$RE_tmap <- renderTmap({
-    wt_real_estate_score <- real_estate_score()
-    wt_landlord_score <- landlord_score()
-    rent_control_cbsas <- testswitch() 
-      
-    criteria_unweighted$real_estate_score <- wt_real_estate_score
-    criteria_unweighted$landlord_score <- wt_landlord_score
-    # join shp and criteria score 
-    
-    cbsa_RE <- cbsa_geom %>% inner_join(criteria_unweighted) %>% 
-      filter(cbsa %in% rent_control_cbsas)
-    
+    wt_criteria <- filtered_criteria_scores()
+    wt_criteria %>%  pivot_longer(cols = 4:10, # selecting criteria cols
+                   names_to = "criteria",
+                   values_to = "wt_criteria_score") %>% 
+      inner_join(cbsa_geom, multiple="all") 
     
     tm_shape(states_geom) +
       tm_fill("grey") +
