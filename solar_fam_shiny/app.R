@@ -15,21 +15,9 @@ library(shinyWidgets)
 library(tidycensus)
 library(shinyBS)
 library(shiny.router)
-library(kableExtra)
 library(DT)
+library(shinytest)
 
-### create clean table for criteria map
-unwt_criteria_clean <- criteria_unweighted %>%
-  rename("Real Estate"="real_estate_score",
-         "Landlord Policy"="landlord_score",
-         "Electricity Generation"="electricity_score", 
-         "CO2 Emissions Abated"="co2_e_score",
-         "Climate Risk Avoided"="climate_risk_score",
-         "Reduced Health Impacts"="health_impact_score", 
-         "Solar Financials"="financial_score") %>% 
-  select(2:10) %>% 
-  mutate_if(is.numeric, round, digits = 2) %>% 
-  unite("City, ST", city_msa:state, sep = ", ") 
 
 
 
@@ -65,8 +53,21 @@ landlord_data <- read_csv(here("data/intermediate/landlord_data.csv")) %>%
 criteria_unweighted <- read_csv(here("data/intermediate/unwt_criteria_scores.csv")) %>% 
   mutate(cbsa = as.character(cbsa)) 
 
+### create clean table for criteria map
+unwt_criteria_clean <- criteria_unweighted %>%
+  rename("Real Estate"="real_estate_score",
+         "Landlord Policy"="landlord_score",
+         "Electricity Generation"="electricity_score", 
+         "CO2 Emissions Abated"="co2_e_score",
+         "Climate Risk Avoided"="climate_risk_score",
+         "Reduced Health Impacts"="health_impact_score", 
+         "Solar Financials"="financial_score") %>% 
+  select(2:10) %>% 
+  mutate_if(is.numeric, round, digits = 2) %>% 
+  unite("City, ST", city_msa:state, sep = ", ") 
+
 ####### Informatin
-RE_input_text <- ""
+RE_input_text <- "hi"
 abstract <- "As the renewable energy transition accelerates, housing, due to its high energy demand, 
 can play a critical role in the clean energy shift. Specifically, multifamily housing provides a unique 
 opportunity for solar photovoltaic (PV) system adoption, given the existing competing interests between 
@@ -91,8 +92,8 @@ ui <- fluidPage(
   # Application title
   titlePanel(div(h4("Identifying areas to invest in Rooftop Solar on Multifamily Housing", 
                  tags$img(src = "bren-leaf-logo.jpg", align="right", height="30px", width="30px"))),
-             windowTitle="solar family"),
-  navbarPage("solar fam",
+             windowTitle="solar fam"),
+  navbarPage("solar family",
              theme = bs_theme(bootswatch = "cerulean", primary = "#8aab57"),
              ### tab 1 - background
              tabPanel("Landing Page", icon=icon("home", lib="glyphicon"), id="home", 
@@ -129,7 +130,7 @@ ui <- fluidPage(
                         p("Weights for each criterion can be adjusted in the model based on user priorities. The client’s weights reflect relative importance in ZNE Capital’s decision making for their business model. An example equity-centric scenario was included to represent non-profit or government stakeholders that maximize positive social and environmental impact by prioritizing CO2 abatement potential and health impacts."),
                         h5("Model Flow Chart"),  ### Add model image here
                         div(class = "center-image", img(src = "model_no_weights.jpg", width = "1000px", height = "500px")),
-                        p(strong("Figure 1."), "Visualization of methodology to calculate investment favorability score for each metropolitan area. The investment favorability score of rooftop solar on apartment buildings was calculated as a weighted additive total of the seven criteria scores."),
+                        p(strong("Figure 1."), "Visualization of methodology to calculate investment favorability score for each metropolitan area. The investment favorability score of rooftop solar on apartment buildings was calculated as a weighted additive total of the seven criteria scores.")
                         
                         
                       ) ### end mainPanel
@@ -160,10 +161,10 @@ ui <- fluidPage(
                                                   width = "175px",min = 0.0,max = 1.0, step = 0.05), # end health impact weight input
                                      
                                      actionButton(inputId = "EnterREWeights", label = "Enter Weights"),
-                                     p(verbatimTextOutput(outputId = "REwt_sum"))), # end sidebar panel
+                                     verbatimTextOutput(outputId = "REwt_sum")), # end sidebar panel
                                    
-                                   mainPanel(h5("Real Estate Metric Significance"),
-                                     p(dataTableOutput(outputId = "RE_wt_table")))
+                                   mainPanel(dataTableOutput("RE_wt_table"),
+                                             verbatimTextOutput(outputId = "REwt_sum"))
                                  )), # end step 1 tab panel
                         tabPanel("Step 2: Landlord Inputs",
                                  sidebarLayout(
@@ -181,7 +182,7 @@ ui <- fluidPage(
                                      numericInput(inputId = "SeDepWtInput", label = "Security Deposit Limit",
                                                   value = 0.20, width = "175px", min = 0.0,max = 1.0,step = 0.05),
                                      actionButton(inputId = "EnterLandlordWeights", label = "Enter Weights"),
-                                     p(verbatimTextOutput(outputId = "landlord_sum"))),
+                                     verbatimTextOutput(outputId = "landlord_sum")),
                                    
                                    mainPanel(h5("Criteria Significance"), 
                                              p("The landlord criteria can be important for staleholders working with private investors, as it ensures profit from the real estate properties. For this reason, states with rent control may not
@@ -198,12 +199,9 @@ ui <- fluidPage(
                                               landlord criterion scores when calculating each MSA's investment scores."))
                                              
                                              
-                                             
-                                             
                                  )), # end step 2 tab panel
                         ###### start of criteria weightst tab -----------------------------------------
                         tabPanel("Step 3. Criteria Weights", 
-                                 br(),
                                  sidebarLayout(
                                    sidebarPanel(
                                      ### inputs for criteria weights
@@ -227,7 +225,7 @@ ui <- fluidPage(
                                                   value = 0.11, width = "175px", min = 0.0, max = 1.0, step = 0.05), # end irr input
                                     # actionButton(inputId = "EnterWeights", "Run Analysis", style="color: #fff; background-color: #8aab57; border-color: #2e6da4", onclick = "document.getElementById('EnterWeights').style.color = 'orange';"),
                                      actionButton(inputId = "EnterWeights", label = "Enter Weights"),
-                                     p(verbatimTextOutput(outputId = "wt_sum"))), # end sidebar panel
+                                     verbatimTextOutput(outputId = "wt_sum")), # end sidebar panel
                                    
                                    mainPanel( 
                                      h5("Weight Significance"),
@@ -238,25 +236,27 @@ ui <- fluidPage(
                                      radioButtons(inputId = "radio_criteria", label = h5("Select criteria to map"),
                                                   choices = list("Climate Risk Avoided", "CO2 Emissions Abated", "Electricity Generation", "Solar Financials", "Real Estate", "Landlord Policy", "Reduced Health Impacts")),
                                   
-                                     plotOutput(outputId = "criteria_layers"))
-                                 ) # end sidebar layout
+                                     plotOutput(outputId = "criteria_layers"))) # end sidebar layout
                         ), # end tab panel
                         tabPanel("Results", icon=icon("globe"),
                                  sidebarLayout(
                                    sidebarPanel(h5("Interpreting Results"),
                                                 p("The bar graph below shows the ranked areas from highest to lowest investment favorability score. The various colors
                                        in the graph represents different criteria to visualize how much each criteria contributes to the investment favorability score."),
-                                       dataTableOutput(outputId = "wt_table")
-                                    ),
+                                       dataTableOutput(outputId = "wt_table")),
                                  
                                  mainPanel(
                                        h5("Ranked metropolitan areas based investment favorability for rooftop solar on multifamily housing"),
-                                           plotOutput(outputId = "wt_criteria_chart"),
-                                       
+                                       plotOutput(outputId = "wt_criteria_chart"),
                                            tmapOutput(outputId = "ranked_map")))),
                         
-                        tabPanel("Export Results", icon=icon("circle-arrow-down"), 
-                                 mainPanel(dataTableOutput(outputId = "wt_table")))
+                        tabPanel("Export Results", icon=icon("circle-arrow-down"),
+                                 sidebarLayout(
+                                   sidebarPanel(
+                                     h5("save results")
+                                   ),
+                                   mainPanel(dataTableOutput(outputId = "wt_table"))
+                                   ))
                         
                         
                       ) # end tabset panel
@@ -285,7 +285,7 @@ ui <- fluidPage(
                                    The real estate criteria was priortized in the client scenario to ensure property investments are in areas of economic growth. The equity-centered scenario excluded the landlord criteria and included the
                                    a health impacts criteria. The more even distribution of weights represents stakeholders looking to provide affordable housing in areas that have the greatest potential to reduce air pollutants.
                                    "),
-                                   tmapOutput(outputId = "equity_map")))
+                                   plotOutput(outputId = "equity_map")))
                                 
                                  
                         ), # end about the projct tab) 
@@ -342,7 +342,7 @@ ui <- fluidPage(
                                  HTML("The <a href='https://reopt.nrel.gov/tool'>REopt Tool</a>  is a publicly available, open-source web tool created by the National Renewable Energy Laboratory (NREL) that was used in this project to analyze the solar electricity generation, internal rate of return (IRR), CO2 abatement potential, and human health impacts of installing rooftop solar on a standard apartment building (4 floors, 33,740 square feet). REopt was chosen for this analysis because by modeling rooftop solar energy generation and demand for an apartment building, it was able to model cohesive metrics across economic, environmental, and social criteria. Furthermore, REopt drew from other reliable national databases, including PVWatts,  EPA AVERT, and OpenEI. All input values except location, electricity rate, and net metering system capacity were held constant in order to compare MSAs accurately. For MSAs that contained multiple cities, an “anchor city” was selected based on population size; a list of anchor cities can be found in the appendix. The REopt model calculated all metrics using both the optimal recommended solar installation and a business-as-usual (no solar) scenario to provide a baseline for comparison.")
                         ),
                         tabPanel("References"))
-             ) # end tabset panel,
+             ) # end tab panel,
              
   ) ### end nav bar
   
@@ -363,35 +363,32 @@ server <- function(input, output) {
       input$RentIncomeWtInput)  
   })
   
-  output$REwt_sum <- renderPrint({
-    validate(need(try(sum(REweight_inputs()) == 1),
-             sprintf("Weights must sum to 1. Current sum is %.2f", sum(REweight_inputs())))
-    )
-  })
+  output$REwt_sum <- renderText({sum(REweight_inputs())})
   
-  
-  # real estate weighted table
-  output$RE_wt_table <- renderDataTable({
-    req(input$EnterREWeights)
-    wt_real_estate_metrics <- real_estate_metrics %>% 
-      mutate(wt_pop_change = n_pop_growth* input$PopChgWtInput,
-             wt_employ_change = n_employ_change* input$EmployWtInput,
-             wt_occ = n_occ_rate2021* input$OccWtInput,
-             wt_rent_change = n_rent_change* input$RentChgWtInput,
-             wt_rent_income = n_rent_to_income* input$RentIncomeWtInput,
-             wt_income_homeprice = n_income_to_homeprice* input$IncomeHomeWtInput) %>% 
-      select(!starts_with("n_")) %>% 
-       mutate(real_estate_score = apply(.[,4:9], 1, sum)) %>% 
-       mutate_if(is.numeric, round, digits = 2) %>% 
-       select(!c(msa, anchor_city)) %>% 
-       rename("Population Change"="wt_pop_change",
-              "Employment Change"="wt_employ_change",
-              "Occupancy Rate"="wt_occ", 
-              "Rent Change"="wt_rent_change",
-              "Rent to Income"="wt_rent_income",
-              "Income to Homeprice"="wt_income_homeprice") 
+
+   # real estate weighted table
+   output$RE_wt_table <- renderDataTable({
+     req(input$EnterREWeights)
+     wt_real_estate_metrics <- real_estate_metrics %>% 
+       mutate(wt_pop_change = n_pop_growth* input$PopChgWtInput,
+              wt_employ_change = n_employ_change* input$EmployWtInput,
+              wt_occ = n_occ_rate2021* input$OccWtInput,
+              wt_rent_change = n_rent_change* input$RentChgWtInput,
+              wt_rent_income = n_rent_to_income* input$RentIncomeWtInput,
+              wt_income_homeprice = n_income_to_homeprice* input$IncomeHomeWtInput) %>% 
+       select(!starts_with("n_")) 
+        mutate(real_estate_score = apply(.[,4:9], 1, sum)) %>% 
+        mutate_if(is.numeric, round, digits = 2) %>% 
+        select(!c(msa, anchor_city)) %>% 
+        rename("Population Change"="wt_pop_change",
+               "Employment Change"="wt_employ_change",
+               "Occupancy Rate"="wt_occ", 
+               "Rent Change"="wt_rent_change",
+               "Rent to Income"="wt_rent_income",
+               "Income to Homeprice"="wt_income_homeprice") 
+   })
        
-  })
+  
   
   # store wt_real estate score to calculate investment score
   real_estate_score <- reactive({
@@ -466,7 +463,7 @@ server <- function(input, output) {
      
   })
   
-  output$wt_sum_test <- renderPrint({
+  output$wt_sum_test <- renderText({
     validate(need(sum(weight_inputs()) == 1,"Weights must sum to 1."),
              need(sum(REweight_inputs()) == 1, "Real Estate criteria weights must sum to 1."),
              need(sum(LLweight_inputs()) == 1,"Landlord criteria weights must sum to 1.")
@@ -502,8 +499,8 @@ server <- function(input, output) {
     # return error if weights don't sum to 1
     validate(need(sum(weight_inputs()) == 1,"Weights must sum to 1."),
              need(sum(REweight_inputs()) == 1, "Real Estate criteria weights must sum to 1."),
-             need(sum(LLweight_inputs()) == 1,"Landlord criteria weights must sum to 1.")
-    )
+             need(sum(LLweight_inputs()) == 1,"Landlord criteria weights must sum to 1."))
+    
     # calculate weights scores if sum of weights is 1
     wt_real_estate_score <- real_estate_score()
     wt_landlord_score <- landlord_score()
@@ -530,7 +527,6 @@ server <- function(input, output) {
   ## output weighted criteria into bar chart
   output$wt_criteria_chart <- renderPlot({
     req(input$EnterWeights)
-    
      wt_data <- filtered_criteria_scores() %>% 
        pivot_longer(cols = 4:10, # selecting criteria cols
                     names_to = "criteria",
@@ -548,9 +544,7 @@ server <- function(input, output) {
       scale_x_continuous(limits = c(0, 1.0), expand = c(0,0), breaks=seq(0, 1.0, 0.1))
   })
   
-
-
-map_criteriaInput <- reactive({ input$radio_criteria})
+  map_criteriaInput <- reactive({input$radio_criteria})
     
   output$ranked_map <- renderTmap({
     wt_scores <- criteria_unweighted %>% 
@@ -583,16 +577,13 @@ map_criteriaInput <- reactive({ input$radio_criteria})
       geom_sf(data = states_sf, fill = "grey") +
       geom_sf(data = unwt_data_shp, aes(fill=criteria)) +
       theme_void() +
-      scale_fill_gradient(low = "white", high = "forestgreen") +
-      labs(fill = "criteria")
+      scale_fill_gradient(low = "white", high = "forestgreen") 
     
   })
   
-  output$equity_map <- renderTmap({
+  output$equity_map <- renderPlot({
     equity_score <- criteria_unweighted %>% select(cbsa, city_msa, state, equity_scenario_score)
-
     data_shp <- cbsa_geom %>% inner_join(equity_score) 
-    
     ggplot() +
       geom_sf(data = states_sf, fill = "grey") +
       geom_sf(data = data_shp, aes(fill=equity_scenario_score), color = "white") +
