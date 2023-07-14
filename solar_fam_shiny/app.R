@@ -1,3 +1,4 @@
+
 library(shiny)
 library(ggplot2)
 library(tidyverse)
@@ -19,8 +20,7 @@ library(DT)
 library(shinytest)
 
 
-
-
+  
 #### READ IN SHP DATA ----------------------------------------------
 cbsa_geom <- core_based_statistical_areas(class="sf") %>% 
   mutate(cbsa = as.character(CBSAFP),
@@ -160,11 +160,9 @@ ui <- fluidPage(
                                      numericInput(inputId = "IncomeHomeWtInput", label = "Income to Home Price",value = 0.10,
                                                   width = "175px",min = 0.0,max = 1.0, step = 0.05), # end health impact weight input
                                      
-                                     actionButton(inputId = "EnterREWeights", label = "Enter Weights"),
-                                     verbatimTextOutput(outputId = "REwt_sum")), # end sidebar panel
+                                     actionButton(inputId = "EnterREWeights", label = "Enter Weights")), # end sidebar panel
                                    
-                                   mainPanel(dataTableOutput("RE_wt_table"),
-                                             verbatimTextOutput(outputId = "REwt_sum"))
+                                   mainPanel(dataTableOutput("RE_wt_table"))
                                  )), # end step 1 tab panel
                         tabPanel("Step 2: Landlord Inputs",
                                  sidebarLayout(
@@ -204,6 +202,10 @@ ui <- fluidPage(
                         tabPanel("Step 3. Criteria Weights", 
                                  sidebarLayout(
                                    sidebarPanel(
+                                     h5("Weight Significance"),
+                                     p("The weights entered for each criteria represent the importance of that criteria to invest in rooftop solar on multifamily housing. 
+                                       Higher weight values indicate greater importance of the criteria to stakeholder when investing in multifamily housing and adding rooftop solar. A value of zero
+                                       means the criteria is not included in the investment favorability score."),
                                      ### inputs for criteria weights
                                      numericInput(inputId = "REWtInput", label = "Real Estate",
                                                   value = 0.18,width = "175px", min = 0.0,max = 1.0,step = 0.05), # end RE weight input
@@ -229,9 +231,6 @@ ui <- fluidPage(
                                    
                                    mainPanel( 
                                      h5("Weight Significance"),
-                                     p("The weights entered for each criteria represent the importance of that criteria to invest in rooftop solar on multifamily housing. 
-                                       Higher weight values indicate greater importance of the criteria to stakeholder when investing in multifamily housing and adding rooftop solar. A value of zero
-                                       means the criteria is not included in the investment favorability score."),
                                      verbatimTextOutput(outputId = "wt_sum_test"),
                                      radioButtons(inputId = "radio_criteria", label = h5("Select criteria to map"),
                                                   choices = list("Climate Risk Avoided", "CO2 Emissions Abated", "Electricity Generation", "Solar Financials", "Real Estate", "Landlord Policy", "Reduced Health Impacts")),
@@ -243,7 +242,7 @@ ui <- fluidPage(
                                    sidebarPanel(h5("Interpreting Results"),
                                                 p("The bar graph below shows the ranked areas from highest to lowest investment favorability score. The various colors
                                        in the graph represents different criteria to visualize how much each criteria contributes to the investment favorability score."),
-                                       dataTableOutput(outputId = "wt_table")),
+                                       ),
                                  
                                  mainPanel(
                                        h5("Ranked metropolitan areas based investment favorability for rooftop solar on multifamily housing"),
@@ -363,12 +362,20 @@ server <- function(input, output) {
       input$RentIncomeWtInput)  
   })
   
-  output$REwt_sum <- renderText({sum(REweight_inputs())})
+  output$REwt_sum <- renderPrint({
+    validate(need(try(sum(REweight_inputs()) == 1),
+                  sprintf("Weights must sum to 1. Current sum is %.2f", sum(REweight_inputs())))
+    )
+  })
+            
   
 
    # real estate weighted table
    output$RE_wt_table <- renderDataTable({
      req(input$EnterREWeights)
+     validate(need(try(sum(REweight_inputs()) == 1),
+                   sprintf("Weights must sum to 1. Current sum is %.2f", sum(REweight_inputs()))))
+              
      wt_real_estate_metrics <- real_estate_metrics %>% 
        mutate(wt_pop_change = n_pop_growth* input$PopChgWtInput,
               wt_employ_change = n_employ_change* input$EmployWtInput,
@@ -376,7 +383,7 @@ server <- function(input, output) {
               wt_rent_change = n_rent_change* input$RentChgWtInput,
               wt_rent_income = n_rent_to_income* input$RentIncomeWtInput,
               wt_income_homeprice = n_income_to_homeprice* input$IncomeHomeWtInput) %>% 
-       select(!starts_with("n_")) 
+       select(!starts_with("n_")) %>% 
         mutate(real_estate_score = apply(.[,4:9], 1, sum)) %>% 
         mutate_if(is.numeric, round, digits = 2) %>% 
         select(!c(msa, anchor_city)) %>% 
@@ -455,7 +462,7 @@ server <- function(input, output) {
 
  
   # text to show weight sum
-  output$wt_sum <- renderPrint({
+  output$wt_sum <- renderText({
     validate(need(try(sum(weight_inputs()) == 1),
                   sprintf("Weights must sum to 1. Current sum is %.2f", sum(weight_inputs())))
                   
