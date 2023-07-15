@@ -62,12 +62,22 @@ unwt_criteria_clean <- criteria_unweighted %>%
          "Climate Risk Avoided"="climate_risk_score",
          "Reduced Health Impacts"="health_impact_score", 
          "Solar Financials"="financial_score") %>% 
-  select(2:10) %>% 
+  select(1:10) %>% 
   mutate_if(is.numeric, round, digits = 2) %>% 
   unite("City, ST", city_msa:state, sep = ", ") 
 
+# Define the criteria names and colors
+criteria <- c("Climate Risk Avoided", "CO2 Emissions Abated", "Electricity Generation",
+              "Solar Financials", "Real Estate", "Landlord Policy", "Reduced Health Impacts")
+
+colors <- c("palevioletred1", "orange", "gold", "#44AA99", "dodgerblue4", "#BC80BD", "#6495ED")
+
+# Create a data frame with the criteria and colors
+criteria_colors <- data.frame(criteria = criteria, color = colors)
+
+
 ####### Informatin
-RE_input_text <- "hi"
+
 abstract <- "As the renewable energy transition accelerates, housing, due to its high energy demand, 
 can play a critical role in the clean energy shift. Specifically, multifamily housing provides a unique 
 opportunity for solar photovoltaic (PV) system adoption, given the existing competing interests between 
@@ -140,7 +150,8 @@ ui <- fluidPage(
                       tabsetPanel(
                         tabPanel("Step 1: Real Estate Metrics",
                                  sidebarLayout(
-                                   sidebarPanel(
+                                   sidebarPanel(h5("Input Metric Weights"),
+                                                helpText("Default values are consistent with weights used in the project."),
                                      # inputs for real estate metrics
                                      numericInput(inputId = "PopChgWtInput", label = "Population Change",
                                                   value = 0.35,width = "175px", min = 0.0,max = 1.0,step = 0.05), # end RE weight input
@@ -160,16 +171,30 @@ ui <- fluidPage(
                                      numericInput(inputId = "IncomeHomeWtInput", label = "Income to Home Price",value = 0.10,
                                                   width = "175px",min = 0.0,max = 1.0, step = 0.05), # end health impact weight input
                                      
-                                     actionButton(inputId = "EnterREWeights", label = "Enter Weights")), # end sidebar panel
+                                     actionButton(inputId = "EnterREWeights", label = "Enter Weights"),
+                                     helpText("Click button to generate table of the weighted real estate metrics. Weights must sum to 1.")), # end sidebar panel
                                    
-                                   mainPanel(dataTableOutput("RE_wt_table"))
+                                   mainPanel(br(),
+                                             p("The real estate metrics were included to indicate economic growth and housing demand in 
+                                               each city. Higher weights represent greater importance for the metric when understanding real estate trends. Metrics have been normalized and/or
+                                               inverted so each metric adds to the investment favorability score.
+                                               The rent to income metric represents housing affordability"),
+                                             tmapOutput("real_estate_map"),
+                                             br(),
+                                             br(),
+                                             p("Below is a table of the weighted real estate metrics. Values of '1' indicate the city with the highest (most favorable)
+                                               conditions for a given metric based on the 29 cities included in the analysis. Values of '0' mean that city scored the lowest 
+                                               within a given metric."),
+                                             br(),
+                                     dataTableOutput("RE_wt_table")
+                                     )
                                  )), # end step 1 tab panel
                         tabPanel("Step 2: Landlord Inputs",
                                  sidebarLayout(
                                    sidebarPanel(
                                      switchInput(inputId = "RentControl",
                                                  label= "Include areas with Rent Control",
-                                                 value = TRUE,
+                                                 value = FALSE,
                                                  handleWidth = "150px",
                                                  labelWidth = "300px",
                                                  onLabel = "YES",
@@ -178,9 +203,7 @@ ui <- fluidPage(
                                                   value = 0.80,width = "175px", min = 0.0,max = 1.0,step = 0.05), # end RE weight input
                                      
                                      numericInput(inputId = "SeDepWtInput", label = "Security Deposit Limit",
-                                                  value = 0.20, width = "175px", min = 0.0,max = 1.0,step = 0.05),
-                                     actionButton(inputId = "EnterLandlordWeights", label = "Enter Weights"),
-                                     verbatimTextOutput(outputId = "landlord_sum")),
+                                                  value = 0.20, width = "175px", min = 0.0,max = 1.0,step = 0.05)),
                                    
                                    mainPanel(h5("Criteria Significance"), 
                                              p("The landlord criteria can be important for staleholders working with private investors, as it ensures profit from the real estate properties. For this reason, states with rent control may not
@@ -226,13 +249,12 @@ ui <- fluidPage(
                                      numericInput(inputId = "SolarIrrWtInput", label = "Solar Financials",
                                                   value = 0.11, width = "175px", min = 0.0, max = 1.0, step = 0.05), # end irr input
                                     # actionButton(inputId = "EnterWeights", "Run Analysis", style="color: #fff; background-color: #8aab57; border-color: #2e6da4", onclick = "document.getElementById('EnterWeights').style.color = 'orange';"),
-                                     actionButton(inputId = "EnterWeights", label = "Enter Weights"),
-                                     verbatimTextOutput(outputId = "wt_sum")), # end sidebar panel
+                                     actionButton(inputId = "EnterWeights", label = "Enter Weights")), # end sidebar panel
                                    
                                    mainPanel( 
-                                     h5("Weight Significance"),
+                                     h5("Explore Criteria Spatially"),
                                      verbatimTextOutput(outputId = "wt_sum_test"),
-                                     radioButtons(inputId = "radio_criteria", label = h5("Select criteria to map"),
+                                     radioButtons(inputId = "radio_criteria", label = h5("Select criteria"),
                                                   choices = list("Climate Risk Avoided", "CO2 Emissions Abated", "Electricity Generation", "Solar Financials", "Real Estate", "Landlord Policy", "Reduced Health Impacts")),
                                   
                                      plotOutput(outputId = "criteria_layers"))) # end sidebar layout
@@ -241,21 +263,20 @@ ui <- fluidPage(
                                  sidebarLayout(
                                    sidebarPanel(h5("Interpreting Results"),
                                                 p("The bar graph below shows the ranked areas from highest to lowest investment favorability score. The various colors
-                                       in the graph represents different criteria to visualize how much each criteria contributes to the investment favorability score."),
+                                       in the graph represents different criteria to visualize how much each  contributes to the total investment favorability score."),
+                                       dataTableOutput("ranked_table")
                                        ),
                                  
                                  mainPanel(
                                        h5("Ranked metropolitan areas based investment favorability for rooftop solar on multifamily housing"),
                                        plotOutput(outputId = "wt_criteria_chart"),
-                                           tmapOutput(outputId = "ranked_map")))),
+                                       tmapOutput("ranked_map")
+                                       ))),
                         
-                        tabPanel("Export Results", icon=icon("circle-arrow-down"),
-                                 sidebarLayout(
-                                   sidebarPanel(
-                                     h5("save results")
-                                   ),
-                                   mainPanel(dataTableOutput(outputId = "wt_table"))
-                                   ))
+                        tabPanel("Download Results", icon=icon("circle-arrow-down"),
+                                   mainPanel(br(),
+                                     dataTableOutput(outputId = "wt_table"))
+                                   )
                         
                         
                       ) # end tabset panel
@@ -360,19 +381,13 @@ server <- function(input, output) {
       input$RentChgWtInput,
       input$IncomeHomeWtInput,
       input$RentIncomeWtInput)  
+    
   })
   
-  output$REwt_sum <- renderPrint({
-    validate(need(try(sum(REweight_inputs()) == 1),
-                  sprintf("Weights must sum to 1. Current sum is %.2f", sum(REweight_inputs())))
-    )
-  })
-            
   
 
    # real estate weighted table
    output$RE_wt_table <- renderDataTable({
-     req(input$EnterREWeights)
      validate(need(try(sum(REweight_inputs()) == 1),
                    sprintf("Weights must sum to 1. Current sum is %.2f", sum(REweight_inputs()))))
               
@@ -392,7 +407,20 @@ server <- function(input, output) {
                "Occupancy Rate"="wt_occ", 
                "Rent Change"="wt_rent_change",
                "Rent to Income"="wt_rent_income",
-               "Income to Homeprice"="wt_income_homeprice") 
+               "Income to Homeprice"="wt_income_homeprice",
+               "Real Estate Score") %>% 
+       select(!cbsa) %>% 
+       DT::datatable(.,
+                     options = list(
+                       buttons = c('pdf', 'excel', 'csv'),
+                       dom = 'Bt',
+                       scrollX= FALSE,
+                       searching=FALSE,
+                       paging = FALSE),
+                     rownames = FALSE,
+                     filter = "none",
+                     extensions = "Buttons")
+       
    })
        
   
@@ -413,7 +441,40 @@ server <- function(input, output) {
     return(wt_real_estate_metrics$real_estate_score)
   })
   
+  output$real_estate_map <- renderTmap({
+    validate(need(try(sum(REweight_inputs()) == 1),
+                  sprintf("Weights must sum to 1. Current sum is %.2f", sum(REweight_inputs()))))
+    
+    wt_REmetrics <- real_estate_metrics %>% 
+      mutate(wt_pop_change = n_pop_growth* input$PopChgWtInput,
+             wt_employ_change = n_employ_change* input$EmployWtInput,
+             wt_occ = n_occ_rate2021* input$OccWtInput,
+             wt_rent_change = n_rent_change* input$RentChgWtInput,
+             wt_rent_income = n_rent_to_income* input$RentIncomeWtInput,
+             wt_income_homeprice = n_income_to_homeprice* input$IncomeHomeWtInput) %>% 
+      select(!starts_with("n_")) %>% 
+      mutate(real_estate_score = apply(.[,4:9], 1, sum)) %>% 
+      mutate_if(is.numeric, round, digits = 2) %>% 
+      select(!c(msa, anchor_city)) %>% 
+      rename("Population Change"="wt_pop_change",
+             "Employment Change"="wt_employ_change",
+             "Occupancy Rate"="wt_occ", 
+             "Rent Change"="wt_rent_change",
+             "Rent to Income"="wt_rent_income",
+             "Income to Homeprice"="wt_income_homeprice")
+      
+    REmetric_sf <- cbsa_geom %>% inner_join(wt_REmetrics)
+    
+    tm_basemap(NULL) +
+      tm_shape(states_sf) +
+      tm_polygons("grey") +
+      tm_shape(REmetric_sf, name="Rent Change") +
+      tm_polygons("Rent Change", palette="Purples") +
+      tmap_mode("view")
+    
+  })
   
+ 
   
   ###### landlord metric weight inputs and outputs ---------------------------
   testswitch <- reactive({ input$RentControl})
@@ -460,15 +521,7 @@ server <- function(input, output) {
   })
   
 
- 
-  # text to show weight sum
-  output$wt_sum <- renderText({
-    validate(need(try(sum(weight_inputs()) == 1),
-                  sprintf("Weights must sum to 1. Current sum is %.2f", sum(weight_inputs())))
-                  
-    )
-     
-  })
+
   
   output$wt_sum_test <- renderText({
     validate(need(sum(weight_inputs()) == 1,"Weights must sum to 1."),
@@ -509,7 +562,7 @@ server <- function(input, output) {
              need(sum(LLweight_inputs()) == 1,"Landlord criteria weights must sum to 1."))
     
     # calculate weights scores if sum of weights is 1
-    wt_real_estate_score <- real_estate_score()
+    wt_real_estate_score <- real_estate_score() 
     wt_landlord_score <- landlord_score()
     rc_cbsas <- rent_control_cbsas() 
     
@@ -519,21 +572,51 @@ server <- function(input, output) {
     wt_data <- calculate_wt_criteria(criteria_unweighted) %>% 
       filter(cbsa %in% rc_cbsas) %>% 
       mutate("Investment Favorability Score" = apply(.[,4:10], 1, sum),
-             cbsa= as.character(cbsa))
+             cbsa= as.character(cbsa)) %>% 
+      mutate_if(is.numeric, round, digits = 2)
 
     return(wt_data)
   })
   
-  output$wt_table <- renderDataTable({
+  output$ranked_table <- renderDataTable({
     filtered_criteria_scores() %>% 
-      select(!cbsa) 
+      unite("City, ST", city_msa:state, sep = ", ") %>% 
+      select("City, ST", "Investment Favorability Score") %>% 
+      DT::datatable(.,
+                  options = list(
+                    scrollX= FALSE,
+                    searching=FALSE,
+                    paging = FALSE),
+                  rownames = FALSE,
+                  filter = "none",
+                  width=500)
+    })
   
+    
+  output$wt_table <- renderDataTable({
+    weights <- c("WEIGHT INPUTS", weight_inputs(), NA)
+    filtered_criteria_scores() %>% 
+      select(!cbsa) %>% 
+      unite("City, ST", city_msa:state, sep = ", ") %>% 
+      arrange("Investment Favorability Score") %>% 
+      rbind(., weights) %>% 
+      DT::datatable(.,
+                  options = list(
+                    buttons = c('pdf', 'excel', 'csv'),
+                    dom = 'Bt',
+                    scrollX= FALSE,
+                    searching=FALSE,
+                    paging = FALSE),
+                  rownames = FALSE,
+                  filter = "none",
+                  extensions = "Buttons")
+                  
     })
   
   
   ## output weighted criteria into bar chart
   output$wt_criteria_chart <- renderPlot({
-    req(input$EnterWeights)
+    
      wt_data <- filtered_criteria_scores() %>% 
        pivot_longer(cols = 4:10, # selecting criteria cols
                     names_to = "criteria",
@@ -543,7 +626,7 @@ server <- function(input, output) {
     
     ggplot(data = wt_data, aes(y = reorder(msa_state, wt_criteria_score, FUN=sum), x = wt_criteria_score)) + 
       geom_col(aes(fill = criteria)) +
-      labs(x = "Total Score", y = " ", title = " ") +
+      labs(x = "Investment Favorability Score", y = " ", title = " ") +
       theme_bw() +
       guides(fill=guide_legend(title="Criteria (weighted)")) +
       scale_fill_manual(values = c("palevioletred1","orange",  "gold", "#44AA99", "dodgerblue4", "#BC80BD", "#6495ED"),
@@ -551,40 +634,47 @@ server <- function(input, output) {
       scale_x_continuous(limits = c(0, 1.0), expand = c(0,0), breaks=seq(0, 1.0, 0.1))
   })
   
-  map_criteriaInput <- reactive({input$radio_criteria})
+  map_criteriaInput <- reactive({
+    unwt_criteria <- unwt_criteria_clean %>% 
+      pivot_longer(cols = 3:9, # selecting criteria cols
+                   names_to = "criteria",
+                   values_to = "unwt_criteria_score") 
+    
+    unwt_data_shp <- cbsa_geom %>% inner_join(unwt_criteria) %>% 
+      filter(criteria %in% input$radio_criteria)
+    
+    return(unwt_data_shp)
+        
+    })
     
   output$ranked_map <- renderTmap({
-    wt_scores <- criteria_unweighted %>% 
+    wt_scores <- filtered_criteria_scores() %>% 
       pivot_longer(cols = 4:10, # selecting criteria cols
                    names_to = "criteria",
                    values_to = "wt_criteria_score")
     
-    wt_data_shp <- cbsa_geom %>% inner_join(wt_scores) %>% 
-      filter(criteria == map_criteriaInput())
+    wt_data_shp <- cbsa_geom %>% inner_join(wt_scores)
     
     tm_basemap(NULL) +
     tm_shape(states_sf) +
       tm_polygons("grey") +
       tm_shape(wt_data_shp) +
-      tm_polygons("wt_criteria_score", palette="Purples") +
-      tmap_mode("plot")
+      tm_polygons("Investment Favorability Score", palette="Purples") +
+      tmap_mode("view")
     
   })
   
   output$criteria_layers <- renderPlot({
-  unwt_criteria <- unwt_criteria_clean %>% 
-      pivot_longer(cols = 2:8, # selecting criteria cols
-                   names_to = "criteria",
-                   values_to = "unwt_criteria_score")
     
-    unwt_data_shp <- cbsa_geom %>% inner_join(unwt_criteria) %>% 
-      filter(criteria == map_criteriaInput())
+    unwt_data <- map_criteriaInput()
     
+   c_color <- criteria_colors$color[criteria_colors$criteria == input$radio_criteria]
+   
     ggplot() +
       geom_sf(data = states_sf, fill = "grey") +
-      geom_sf(data = unwt_data_shp, aes(fill=criteria)) +
+      geom_sf(data = unwt_data, aes(fill=unwt_criteria_score)) +
       theme_void() +
-      scale_fill_gradient(low = "white", high = "forestgreen") 
+      scale_fill_gradient(low = "white", high = c_color, aes(fill= input$radio_criteria)) 
     
   })
   
