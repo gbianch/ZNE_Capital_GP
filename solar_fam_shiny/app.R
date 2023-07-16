@@ -139,7 +139,7 @@ ui <- fluidPage(
                         
                         p("Weights for each criterion can be adjusted in the model based on user priorities. The client’s weights reflect relative importance in ZNE Capital’s decision making for their business model. An example equity-centric scenario was included to represent non-profit or government stakeholders that maximize positive social and environmental impact by prioritizing CO2 abatement potential and health impacts."),
                         h5("Model Flow Chart"),  ### Add model image here
-                        div(class = "center-image", img(src = "model_no_weights.jpg", width = "1000px", height = "500px")),
+                        div(class = "center-image", img(src = "model_no_weights.jpg", width = "800px", height = "400px")),
                         p(strong("Figure 1."), "Visualization of methodology to calculate investment favorability score for each metropolitan area. The investment favorability score of rooftop solar on apartment buildings was calculated as a weighted additive total of the seven criteria scores.")
                         
                         
@@ -172,15 +172,17 @@ ui <- fluidPage(
                                                   width = "175px",min = 0.0,max = 1.0, step = 0.05), # end health impact weight input
                                      
                                      actionButton(inputId = "EnterREWeights", label = "Enter Weights"),
-                                     helpText("Click button to generate table of the weighted real estate metrics. Weights must sum to 1.")), # end sidebar panel
+                                     br(),
+                                     helpText("Click button to generate table of the weighted real estate metrics.")), # end sidebar panel
                                    
                                    mainPanel(br(),
+                                             h5("Metric Significance"),
                                              p("The real estate metrics were included to indicate economic growth and housing demand in 
-                                               each city. Higher weights represent greater importance for the metric when understanding real estate trends. Metrics have been normalized and/or
-                                               inverted so each metric adds to the investment favorability score.
-                                               The rent to income metric represents housing affordability"),
-                                             tmapOutput("real_estate_map"),
-                                             br(),
+                                               each city. Higher weights represent greater importance for the metric when understanding real estate trends. All the metrics have been normalized and/or
+                                               inverted so each metric adds to the investment favorability score, therefore values relative score within the 29 areas analyzed and not the acutal value of the given metric. 
+                                               The occupancy rate was average occupancy rates for apartments in the area.
+                                               The rent to income metric represents apartment affordability, while the income to home price represents housing affordablility. "),
+                                            
                                              br(),
                                              p("Below is a table of the weighted real estate metrics. Values of '1' indicate the city with the highest (most favorable)
                                                conditions for a given metric based on the 29 cities included in the analysis. Values of '0' mean that city scored the lowest 
@@ -205,7 +207,7 @@ ui <- fluidPage(
                                      numericInput(inputId = "SeDepWtInput", label = "Security Deposit Limit",
                                                   value = 0.20, width = "175px", min = 0.0,max = 1.0,step = 0.05)),
                                    
-                                   mainPanel(h5("Criteria Significance"), 
+                                   mainPanel(h5("Metric Significance"), 
                                              p("The landlord criteria can be important for staleholders working with private investors, as it ensures profit from the real estate properties. For this reason, states with rent control may not
                                                attract real estate investors. However, there is the option to include cities with rent control. In this 
                                                analysis, the only city within a rent-controlled state was Portland, Maine."),
@@ -225,11 +227,14 @@ ui <- fluidPage(
                         tabPanel("Step 3. Criteria Weights", 
                                  sidebarLayout(
                                    sidebarPanel(
-                                     h5("Weight Significance"),
-                                     p("The weights entered for each criteria represent the importance of that criteria to invest in rooftop solar on multifamily housing. 
-                                       Higher weight values indicate greater importance of the criteria to stakeholder when investing in multifamily housing and adding rooftop solar. A value of zero
-                                       means the criteria is not included in the investment favorability score."),
+                                     h5("Model Use and Weight Significance"),
+                                     p("The weights entered for each criteria represent the importance of that criteria to invest in rooftop solar on multifamily housing. Higher weight values indicate greater importance of the criteria to stakeholder when investing in multifamily housing and adding rooftop solar. A value of zero means the criteria is not included in the investment favorability score."),
+                                     p("By altering the seven criteria weights, this model can capture the preferences of a wide range of stakeholder priorities. For example, a state government interested 
+                                       in funding rooftop solar on multi-family housing  may assign higher weights to CO2 abatement, climate risk avoidance, and solar IRR, while criteria such as renewable 
+                                       electricity production, health impacts, and real estate may receive lower weights. As another example, a philanthropic green investor may prioritize social equity benefits
+                                       by assigning higher criteria weights to health impacts, CO2 emissions abatement, and real estate."),
                                      ### inputs for criteria weights
+                                     helpText("Default values are consistent with weights used in the project."),
                                      numericInput(inputId = "REWtInput", label = "Real Estate",
                                                   value = 0.18,width = "175px", min = 0.0,max = 1.0,step = 0.05), # end RE weight input
                                      
@@ -253,11 +258,34 @@ ui <- fluidPage(
                                    
                                    mainPanel( 
                                      h5("Explore Criteria Spatially"),
-                                     verbatimTextOutput(outputId = "wt_sum_test"),
+                                     p("Select a criteria to see how each city compares to each other across the country. Each criteria has a scores ranging from 0 to 1, in which cities with a score of 1 were the best
+                                       areas for a given criteria. The scores for each category are normalized and not weighted, so scores are relative to the 
+                                       cities included in the analysis. You can use this visualization to understand how criteria vary spatially. For example, the electricity generation criteria shows consistent scores throughout each stte.
+                                       States without net metering policies such as Indiana and Tenneesse had the lowest scores due to lack of payback on electricity generation. 
+                                       "),
+                                     
                                      radioButtons(inputId = "radio_criteria", label = h5("Select criteria"),
                                                   choices = list("Climate Risk Avoided", "CO2 Emissions Abated", "Electricity Generation", "Solar Financials", "Real Estate", "Landlord Policy", "Reduced Health Impacts")),
                                   
-                                     plotOutput(outputId = "criteria_layers"))) # end sidebar layout
+                                     plotOutput(outputId = "criteria_layers"),
+                                     h5("Criteria"), 
+                                     
+                                     p("For 22 of the 29 MSAs analyzed, recommended solar PV installation size was sufficient to make the apartment complexes 
+                                       net zero energy, meaning the total amount of energy generated by rooftop solar is equal or greater than the apartment energy consumption on an annual basis according to the REopt model. This means that the financially optimal recommended rooftop solar 
+                                       installation size was sufficient to cover the apartment building’s electricity use. These net zero locations are depicted in yellow on the above map."),
+                                     p("The relative internal rate of return (IRR) of a rooftop solar project on an apartment building in the given MSA based on REopt model calculations. The solar financial criteria uses the IRR, the annual rate of return expected for installing the financially optimally sized rooftop solar project for an apartment at the simulated location. Portland, ME ranked the best with an IRR of 25.40% followed by Charleston, SC (IRR 17.66%) and Columbia, SC (IRR 17.30%). The location’s NEM policy 
+                                       and residential time of use rates were primary drivers of IRR."),
+                                     p("The relative abatement of CO2 emissions compares a Business-As-Usual scenario without solar installation in a given MSA to a scenario with the recommended financially optimal solar project, and the REopt tool
+                                       calculated the  reduction in CO2 emissions due to installing the recommended rooftop solar project, as compared to business as usual where no solar is installed. 
+                                       The top locations for abatement in CO2 emissions were Port St. Lucie, FL (4,848 tons CO2), Lakeland, FL (4,835 tons CO2) and Pensacola, FL (4,834 tons CO2). This is largely driven by high recommended solar 
+                                       installation sizes, high average annual solar energy production, and large mitigated total utility electricity costs in these locations."),
+                                     p("The REopt model calculated the reduction in lifecycle costs of health emissions from business as usual (no solar installation) due to mitigated NOx, SO2, and PM2.5 pollutants.  The top MSAs for mitigated heath costs were Des Moines, IA ($189,373), Oklahoma City, OK ($127,479), and Fayetteville, AR ($125,724). 
+                                       These locations ranked highest due to relatively dirty (more fossil fuel) grid mixe and high grid emissions factors for the midwest and central U.S. "),
+                                     p("Cities with high climate risk avoidance are subject to lower damages from natural disasters and have the ability to recover from natural disasters that occur.
+                                       The relative climate risk avoidance was lowest for Richmond, VA (1.0), Portland, ME (0.86), Raleigh, NC (0.81) and Spokane, WA (0.76). These locations have low overall climate risk avoidance scores, which can be driven by a combination of relatively low expected annual loss from natural hazards, low social vulnerability, and high community resilience. 
+
+")
+                                     )) # end sidebar layout
                         ), # end tab panel
                         tabPanel("Results", icon=icon("globe"),
                                  sidebarLayout(
@@ -270,11 +298,19 @@ ui <- fluidPage(
                                  mainPanel(
                                        h5("Ranked metropolitan areas based investment favorability for rooftop solar on multifamily housing"),
                                        plotOutput(outputId = "wt_criteria_chart"),
+                                       p("The model in this project is flexible, but it currently analyzes larger markets with populations greater than 500,000 individuals. 
+                                         Removing this requirement would increase the number of analyzed MSAs and allow for investment in overlooked markets. 
+                                         The adaptability of the model allows it to be  applied to other applications that aim to decarbonize the pre-existing build environment.  
+For the climate risk category, the National Risk Index scores used for each MSA include data about the community’s resources available to respond to climate change-induced natural disasters. 
+To ensure that potentially disadvantaged communities are not ranked lower due to their lower resource availability, future iterations of the model may draw upon only total damages from natural disasters, rather than community resilience to balance out equity concerns. 
+"),
                                        tmapOutput("ranked_map")
                                        ))),
                         
                         tabPanel("Download Results", icon=icon("circle-arrow-down"),
-                                   mainPanel(br(),
+                                   mainPanel(
+                                     p("Export results into desired format. The last row of the table contains
+                                       the weights used for each criteria"),
                                      dataTableOutput(outputId = "wt_table"))
                                    )
                         
@@ -320,6 +356,7 @@ ui <- fluidPage(
                       tabsetPanel(
                         tabPanel("Real Estate",
                                  br(),
+                                 tmapOutput("real_estate_map"),
                                  p("The metrics included in this criteria were population growth, employment growth, average annual occupancy, annual rent change, the ratios of median annual rent to median income, and median income to median home price. The data for each metric was gathered and normalized individually before being weighted and used to calculate the Real Estate score."),
                                  h5("Population Growth"),
                                  p("Population growth in a MSA is a commonly used real estate metric to gauge the demand for housing. The National Association of Realtors (NAR) identifies population growth as a key factor in determining a region's real estate market potential and a strong indicator of future demand for housing (Tracey, 2022). The U.S. Census Bureau provides accurate demographic data at the MSA level, making it a reliable source for population estimates. To quantify the change in MSA populations, the group utilized the annual population estimates provided by the U.S. Census Bureau between April 1, 2020, and July 1, 2021. Additionally, the group excluded MSAs with a population growth rate below 0.5% to streamline the analysis."),
@@ -390,7 +427,7 @@ server <- function(input, output) {
    output$RE_wt_table <- renderDataTable({
      validate(need(try(sum(REweight_inputs()) == 1),
                    sprintf("Weights must sum to 1. Current sum is %.2f", sum(REweight_inputs()))))
-              
+     REweights <- c("WEIGHT INPUTS", REweight_inputs(), NA)
      wt_real_estate_metrics <- real_estate_metrics %>% 
        mutate(wt_pop_change = n_pop_growth* input$PopChgWtInput,
               wt_employ_change = n_employ_change* input$EmployWtInput,
@@ -401,15 +438,15 @@ server <- function(input, output) {
        select(!starts_with("n_")) %>% 
         mutate(real_estate_score = apply(.[,4:9], 1, sum)) %>% 
         mutate_if(is.numeric, round, digits = 2) %>% 
-        select(!c(msa, anchor_city)) %>% 
+       rbind(., REweights) %>% 
         rename("Population Change"="wt_pop_change",
                "Employment Change"="wt_employ_change",
                "Occupancy Rate"="wt_occ", 
                "Rent Change"="wt_rent_change",
                "Rent to Income"="wt_rent_income",
                "Income to Homeprice"="wt_income_homeprice",
-               "Real Estate Score") %>% 
-       select(!cbsa) %>% 
+               "Real Estate Score" = "real_estate_score") %>% 
+       select(-cbsa, -msa) %>% 
        DT::datatable(.,
                      options = list(
                        buttons = c('pdf', 'excel', 'csv'),
@@ -442,8 +479,6 @@ server <- function(input, output) {
   })
   
   output$real_estate_map <- renderTmap({
-    validate(need(try(sum(REweight_inputs()) == 1),
-                  sprintf("Weights must sum to 1. Current sum is %.2f", sum(REweight_inputs()))))
     
     wt_REmetrics <- real_estate_metrics %>% 
       mutate(wt_pop_change = n_pop_growth* input$PopChgWtInput,
@@ -462,7 +497,9 @@ server <- function(input, output) {
              "Rent Change"="wt_rent_change",
              "Rent to Income"="wt_rent_income",
              "Income to Homeprice"="wt_income_homeprice")
-      
+    validate(need(try(sum(REweight_inputs()) == 1),
+                  sprintf("Weights must sum to 1. Current sum is %.2f", sum(REweight_inputs()))))
+    
     REmetric_sf <- cbsa_geom %>% inner_join(wt_REmetrics)
     
     tm_basemap(NULL) +
@@ -470,11 +507,12 @@ server <- function(input, output) {
       tm_polygons("grey") +
       tm_shape(REmetric_sf, name="Rent Change") +
       tm_polygons("Rent Change", palette="Purples") +
+      tm_shape(REmetric_sf, name="Population Change") +
+      tm_polygons("Population Change", palette="Purples") +
       tmap_mode("view")
     
   })
   
- 
   
   ###### landlord metric weight inputs and outputs ---------------------------
   testswitch <- reactive({ input$RentControl})
@@ -584,12 +622,13 @@ server <- function(input, output) {
       select("City, ST", "Investment Favorability Score") %>% 
       DT::datatable(.,
                   options = list(
-                    scrollX= FALSE,
+                    dom="t",
                     searching=FALSE,
                     paging = FALSE),
                   rownames = FALSE,
                   filter = "none",
-                  width=500)
+                  width=500, 
+                  escape = FALSE)
     })
   
     
@@ -638,21 +677,18 @@ server <- function(input, output) {
     unwt_criteria <- unwt_criteria_clean %>% 
       pivot_longer(cols = 3:9, # selecting criteria cols
                    names_to = "criteria",
-                   values_to = "unwt_criteria_score") 
+                   values_to = "unwt_criteria_score") %>% 
+      filter(unwt_criteria_score > 0)
     
     unwt_data_shp <- cbsa_geom %>% inner_join(unwt_criteria) %>% 
-      filter(criteria %in% input$radio_criteria)
+      filter(criteria %in% input$radio_criteria) 
     
     return(unwt_data_shp)
         
     })
     
   output$ranked_map <- renderTmap({
-    wt_scores <- filtered_criteria_scores() %>% 
-      pivot_longer(cols = 4:10, # selecting criteria cols
-                   names_to = "criteria",
-                   values_to = "wt_criteria_score")
-    
+    wt_scores <- filtered_criteria_scores() 
     wt_data_shp <- cbsa_geom %>% inner_join(wt_scores)
     
     tm_basemap(NULL) +
@@ -660,13 +696,15 @@ server <- function(input, output) {
       tm_polygons("grey") +
       tm_shape(wt_data_shp) +
       tm_polygons("Investment Favorability Score", palette="Purples") +
-      tmap_mode("view")
+      tmap_mode("view") +
+      tm_view(set.view = 2)
     
   })
   
   output$criteria_layers <- renderPlot({
     
     unwt_data <- map_criteriaInput()
+    criteria <- input$radio_criteria
     
    c_color <- criteria_colors$color[criteria_colors$criteria == input$radio_criteria]
    
@@ -674,7 +712,8 @@ server <- function(input, output) {
       geom_sf(data = states_sf, fill = "grey") +
       geom_sf(data = unwt_data, aes(fill=unwt_criteria_score)) +
       theme_void() +
-      scale_fill_gradient(low = "white", high = c_color, aes(fill= input$radio_criteria)) 
+      scale_fill_gradient(low = "white", high = c_color) +
+      labs(fill = criteria)
     
   })
   
